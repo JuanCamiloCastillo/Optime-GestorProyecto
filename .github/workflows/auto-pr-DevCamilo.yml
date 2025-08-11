@@ -1,11 +1,16 @@
 name: Auto PR (varios) DevCamilo -> desarrollo
 
+
 on:
   push:
     branches: [ DevCamilo ]
 
 permissions:
   contents: write
+  pull-requests: write
+
+permissions:
+  contents: read
   pull-requests: write
 
 jobs:
@@ -55,3 +60,4 @@ jobs:
             }
 
             core.info(`PR #${pr.number} creado desde ${newBranch} -> ${baseBranch}`);
+
