@@ -1,41 +1,63 @@
-name: Auto PR DevCamilo -> desarrollo
+name: Auto PR (varios) DevCamilo -> desarrollo
+
 
 on:
   push:
-    branches:
-      - DevCamilo
+    branches: [ DevCamilo ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  create-pr:
+  open-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Crear PR si no existe (DevCamilo -> desarrollo)
+      - name: Crear rama única y PR
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PR_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            const sourceBranch = 'DevCamilo';
+            const baseBranch = 'desarrollo';
 
-            // ¿Ya hay PR abierto?
-            const { data: prs } = await github.rest.pulls.list({
-              owner, repo, state: 'open', base: 'desarrollo', head: `${owner}:DevCamilo`
-            });
-            if (prs.length > 0) {
-              core.info('Ya existe un PR abierto de DevCamilo -> desarrollo.');
-              return;
-            }
+            const iso = new Date().toISOString().replace(/[-:T.Z]/g,'').slice(0,12);
+            const short = context.sha.substring(0,7);
+            const newBranch = `auto-pr/${baseBranch}/${iso}-${short}`;
 
-            // Crear PR
+            await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${newBranch}`, sha: context.sha });
+
             const { data: pr } = await github.rest.pulls.create({
               owner, repo,
-              title: 'Auto PR: DevCamilo -> desarrollo',
-              head: 'DevCamilo',
-              base: 'desarrollo',
-              body: 'PR creado automáticamente al hacer push en **DevCamilo**.'
+              title: `Auto PR: ${sourceBranch} -> ${baseBranch} (${short})`,
+              head: newBranch,
+              base: baseBranch,
+              body: `PR automático creado desde **${sourceBranch}** en \`${newBranch}\`.\nCommit: \`${context.sha}\``
             });
-            core.info(`PR creado: #${pr.number}`);
+
+            try {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: pr.number,
+                labels: ['auto-pr', 'copilot:review']
+              });
+            } catch (e) {
+              core.info('No se pudieron añadir labels (opcional).');
+            }
+
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner, repo, pull_number: pr.number,
+                reviewers: ['JuanCamiloCastillo']
+              });
+            } catch (e) {
+              core.info('No se pudo asignar revisor (verifica permisos del token).');
+            }
+
+            core.info(`PR #${pr.number} creado desde ${newBranch} -> ${baseBranch}`);
+
