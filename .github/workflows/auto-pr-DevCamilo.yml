@@ -1,0 +1,23 @@
+name: Auto PR from DevCamilo to desarrollo
+
+on:
+  push:
+    branches:
+      - DevCamilo
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: desarrollo
+          branch: DevCamilo
+          title: "Auto PR: DevCamilo -> desarrollo"
+          body: |
+            Este Pull Request fue creado automáticamente cuando se hizo un commit en la rama DevCamilo.
