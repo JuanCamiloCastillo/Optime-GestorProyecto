@@ -1,0 +1,40 @@
+name: Auto PR desarrollo -> prueba
+
+on:
+  push:
+    branches:
+      - desarrollo
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear PR si no existe (desarrollo -> prueba)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'prueba',
+              head: `${context.repo.owner}:desarrollo`
+            });
+            if (prs.length > 0) {
+              core.info('Ya existe un PR abierto de desarrollo -> prueba. No hago nada.');
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Auto PR: desarrollo -> prueba',
+              head: 'desarrollo',
+              base: 'prueba',
+              body: 'PR creado automáticamente al hacer push en la rama **desarrollo**.'
+            });
+            core.info(`PR creado: #${pr.number}`);
