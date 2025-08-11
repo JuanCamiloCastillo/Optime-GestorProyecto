@@ -1,0 +1,23 @@
+name: Auto PR from DevJuliana to desarrollo
+
+on:
+  push:
+    branches:
+      - DevJuliana
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: desarrollo
+          branch: DevJuliana
+          title: "Auto PR: DevJuliana -> desarrollo"
+          body: |
+            Este Pull Request fue creado automáticamente cuando se hizo un commit en la rama DevJuliana.
