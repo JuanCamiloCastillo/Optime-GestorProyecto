@@ -1,23 +1,41 @@
-name: Auto PR from DevCamilo to desarrollo
+name: Auto PR DevCamilo -> desarrollo
 
 on:
   push:
     branches:
       - DevCamilo
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  create-pull-request:
+  create-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+      - name: Crear PR si no existe (DevCamilo -> desarrollo)
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: desarrollo
-          branch: DevCamilo
-          title: "Auto PR: DevCamilo -> desarrollo"
-          body: |
-            Este Pull Request fue creado automáticamente cuando se hizo un commit en la rama DevCamilo.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // ¿Ya hay PR abierto?
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo, state: 'open', base: 'desarrollo', head: `${owner}:DevCamilo`
+            });
+            if (prs.length > 0) {
+              core.info('Ya existe un PR abierto de DevCamilo -> desarrollo.');
+              return;
+            }
+
+            // Crear PR
+            const { data: pr } = await github.rest.pulls.create({
+              owner, repo,
+              title: 'Auto PR: DevCamilo -> desarrollo',
+              head: 'DevCamilo',
+              base: 'desarrollo',
+              body: 'PR creado automáticamente al hacer push en **DevCamilo**.'
+            });
+            core.info(`PR creado: #${pr.number}`);
