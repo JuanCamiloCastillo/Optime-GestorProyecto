@@ -6,14 +6,14 @@ from typing import List, Dict
 class RolesDAL:
 
     @staticmethod
-    def insert_role(nombre_rol: str) -> Dict:
+    def insert_role(nombre_rol: str, rol_padre: int = None) -> Dict:
         conn = get_connection()
         cursor = conn.cursor()
         try:
             # 1) Ejecutar el SP
             cursor.execute(
-                "EXEC dbo.SP_CRUD_Rol ?, ?, ?",
-                (1, None, nombre_rol)
+                "EXEC dbo.SP_CRUD_Rol ?, ?, ?, ?",
+                (1, None, nombre_rol, rol_padre)
             )
 
             # 2) Avanzar hasta el paquete con columnas

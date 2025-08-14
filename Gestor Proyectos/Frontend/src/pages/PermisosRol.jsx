@@ -326,7 +326,7 @@ export default function PermisosRol() {
 
   const groupedData = agruparPorRol();
 
-  if (userSGP.NombreRol?.toUpperCase() !== "ADMINISTRADOR")
+  if (userSGP.NombreRol?.toUpperCase() !== "CFO")
     return <div>No autorizado</div>;
   if (!permisosSGP.VerPermisosRol)
     return <div>No tiene permiso para ver esta sección</div>;

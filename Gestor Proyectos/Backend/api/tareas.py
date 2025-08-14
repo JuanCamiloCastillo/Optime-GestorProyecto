@@ -17,6 +17,7 @@ class TareaIn(BaseModel):
     fecha_inicio:      Optional[str] = None
     comentarios:       Optional[str] = None
     antecesora:        Optional[int] = None
+    id_tarea_padre:    Optional[int] = None  # Nuevo campo para la tarea padre
 
 @router.get("/", response_model=List[dict])
 async def listar_tareas():
@@ -73,5 +74,5 @@ async def eliminar_tarea(tarea_id: int):
 async def listar_tareasJerarquica(proyecto_id: int):
     tareas = TareasBLL.listar_tareasJerarquica(proyecto_id) 
     print(tareas)
-    return {"tareas": TareasBLL.listar_tareasJerarquica(proyecto_id)}
+    return {"tareas": tareas}
 

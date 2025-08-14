@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 from bll.roles_bll import RolesBLL
@@ -6,6 +7,7 @@ router = APIRouter(prefix="/roles", tags=["Roles"])
 
 class RolIn(BaseModel):
     nombre_rol: str
+    rolPadre: Optional[int] = None  # Puede ser None si es un rol raíz
 
 @router.get("/", response_model=list[dict])
 async def listar_roles():
@@ -17,7 +19,9 @@ async def obtener_rol(rol_id: int):
 
 @router.post("/", response_model=dict)
 async def crear_rol(payload: RolIn):
-    return RolesBLL.crear_rol(payload.nombre_rol)
+    if payload.rolPadre:
+        return RolesBLL.crear_rol(payload.nombre_rol, payload.rolPadre)
+    return RolesBLL.crear_rol(payload.nombre_rol, None)
 
 @router.put("/{rol_id}", response_model=dict)
 async def actualizar_rol(rol_id: int, payload: RolIn):

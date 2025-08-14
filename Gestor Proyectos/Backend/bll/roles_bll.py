@@ -16,8 +16,11 @@ class RolesBLL:
         return rol
 
     @staticmethod
-    def crear_rol(nombre_rol: str):
-        rol = RolesDAL.insert_role(nombre_rol)
+    def crear_rol(nombre_rol: str, rol_padre: int = None):
+        if rol_padre:
+            rol = RolesDAL.insert_role(nombre_rol, rol_padre)
+        else:
+            rol = RolesDAL.insert_role(nombre_rol)
         if not rol.get("RolID"):
             raise HTTPException(status_code=400, detail="No se pudo crear el rol")
         return rol

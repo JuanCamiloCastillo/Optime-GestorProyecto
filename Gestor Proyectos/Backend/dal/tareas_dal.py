@@ -72,3 +72,17 @@ class TareasDAL:
         cur.close()
         conn.close()
         return result
+    
+    @staticmethod
+    def crud_tarea_agrupada(accion, proyecto_id, tarea_id, id_tarea_padre=None):
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "EXEC dbo.SP_CRUD_TareaAgrupada ?,?,?,?",
+            (accion, proyecto_id, tarea_id, id_tarea_padre)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+

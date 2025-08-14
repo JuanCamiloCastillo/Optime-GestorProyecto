@@ -23,7 +23,7 @@ class PermisoModuloOut(BaseModel):
     Seleccionar: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 @router.get("/", response_model=List[PermisoModuloOut])
 def listar():

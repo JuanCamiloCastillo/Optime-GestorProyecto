@@ -82,6 +82,14 @@ class TareasBLL:
                 )
 
         nueva["usuario_asignados"] = data.usuario_asignados
+        tid = nueva["TareaID"]
+
+        # Relación padre (opcional)
+        if data.id_tarea_padre is not None:
+            if data.id_tarea_padre == tid:
+                raise HTTPException(status_code=400, detail="Una tarea no puede ser su propio padre")
+            TareasDAL.crud_tarea_agrupada(1, data.proyecto_id, tid, data.id_tarea_padre)
+
         return nueva
 
     @staticmethod
@@ -119,6 +127,14 @@ class TareasBLL:
                 )
 
         updated["usuario_asignados"] = data.usuario_asignados
+        # Relación padre
+        if data.id_tarea_padre is None:
+            # quitar relación si existía
+            TareasDAL.crud_tarea_agrupada(2, data.proyecto_id, tarea_id, None)
+        else:
+            if data.id_tarea_padre == tarea_id:
+                raise HTTPException(status_code=400, detail="Una tarea no puede ser su propio padre")
+            TareasDAL.crud_tarea_agrupada(1, data.proyecto_id, tarea_id, data.id_tarea_padre)
         return updated
 
     @staticmethod
@@ -126,13 +142,18 @@ class TareasBLL:
         """
         Elimina vínculos (acción 3) y luego elimina la tarea (acción 3).
         """
-        # Primero limpio asignaciones
+        t = TareasDAL.crud_tarea(5, tarea_id, None, None, None, None, None, None, None, None, None, None, None)
+        if not t:
+            return {}
+        proyecto_id = t[0]["ProyectoID"]
+        
+        # limpiar asignaciones
         TareasDAL.crud_tarea_usuario(3, tarea_id, None)
-        # Luego borro la tarea
-        resultado = TareasDAL.crud_tarea(
-            3, tarea_id, None, None, None, None, None,
-            None, None, None, None, None, None
-        )
+        # limpiar relaciones de agrupación (como hijo y como padre)
+        TareasDAL.crud_tarea_agrupada(3, proyecto_id, tarea_id, None)
+        
+        # borrar tarea
+        resultado = TareasDAL.crud_tarea(3, tarea_id, None, None, None, None, None, None, None, None, None, None, None)
         return resultado[0] if resultado else {}
 
     @staticmethod
