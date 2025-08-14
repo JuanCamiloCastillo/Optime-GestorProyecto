@@ -1,5 +1,9 @@
 import React, { useState, useMemo, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
+<<<<<<< Updated upstream
+=======
+import "./ProyectoDetalle.css"; // opcional si tienes estilos
+>>>>>>> Stashed changes
 import { useQuery, useMutation } from "react-query";
 import {
   Spin,
@@ -18,6 +22,13 @@ import {
   Modal,
   Form,
   message,
+<<<<<<< Updated upstream
+=======
+  Row,
+  Col,
+  Drawer,
+  Card,
+>>>>>>> Stashed changes
   Segmented,
 } from "antd";
 import { MinusSquareOutlined, PlusSquareOutlined } from "@ant-design/icons";
@@ -32,20 +43,30 @@ import {
   OrderedListOutlined,
   UserOutlined,
   DollarOutlined,
+<<<<<<< Updated upstream
 } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import { SearchOutlined } from "@ant-design/icons";
+=======
+  MenuOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import Highlighter from "react-highlight-words";
+>>>>>>> Stashed changes
 import GanttView from "../components/GanttView.jsx";
 import ChartView from "../components/ChartView.jsx";
 import CalendarView from "../components/CalendarView.jsx";
 import KanbanView from "../components/KanbanView.jsx";
 import RecursosView from "../components/RecursosView.jsx";
 import FinancieroView from "../components/FinancieroView.jsx";
+<<<<<<< Updated upstream
 import "react-quill/dist/quill.snow.css";
+=======
+>>>>>>> Stashed changes
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { Panel } = Collapse;
 
 const prioridadMeta = {
   Baja: "#90BC1F",
@@ -54,22 +75,58 @@ const prioridadMeta = {
   Crítica: "#000",
 };
 
+<<<<<<< Updated upstream
 export default function ProyectoDetalle() {
   const { id } = useParams();
+=======
+// -------- Breakpoints responsivos (UI/UX) --------
+const useBreakpoint = () => {
+  const [breakpoint, setBreakpoint] = useState("xl");
 
+  React.useEffect(() => {
+    const updateBreakpoint = () => {
+      const width = window.innerWidth;
+      if (width < 576) setBreakpoint("xs");
+      else if (width < 768) setBreakpoint("sm");
+      else if (width < 992) setBreakpoint("md");
+      else if (width < 1200) setBreakpoint("lg");
+      else setBreakpoint("xl");
+    };
+    updateBreakpoint();
+    window.addEventListener("resize", updateBreakpoint);
+    return () => window.removeEventListener("resize", updateBreakpoint);
+  }, []);
+
+  return breakpoint;
+};
+
+export default function ProyectoDetalle() {
+  const { id } = useParams();
+  const breakpoint = useBreakpoint();
+  const isMobile = ["xs", "sm"].includes(breakpoint);
+  const isTablet = breakpoint === "md";
+>>>>>>> Stashed changes
+
+  // ------- Estado general -------
   const [filtro, setFiltro] = useState({
     texto: "",
-    persona: null,
-    estado: null,
+    persona: undefined,
+    estado: undefined,
   });
+  const [filtroVencimiento, setFiltroVencimiento] = useState(undefined);
   const [nueva, setNueva] = useState({});
+
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editForm] = Form.useForm();
+
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
+<<<<<<< Updated upstream
   const [filtroVencimiento, setFiltroVencimiento] = useState(null);
+=======
+>>>>>>> Stashed changes
 
   const [seleccionadas, setSeleccionadas] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -77,10 +134,28 @@ export default function ProyectoDetalle() {
   const [mensajeRecordatorio, setMensajeRecordatorio] = useState("");
   const [modalRecordatorioVisible, setModalRecordatorioVisible] =
     useState(false);
+<<<<<<< Updated upstream
+=======
+  const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState(
+    []
+  );
 
-  const userSGP = JSON.parse(localStorage.getItem("userSGP")) || {};
+  const [createTaskDrawerVisible, setCreateTaskDrawerVisible] = useState(false);
+  const [filtersDrawerVisible, setFiltersDrawerVisible] = useState(false);
+  const [modalComentariosVisible, setModalComentariosVisible] = useState(false);
+  const [comentarioTareaSeleccionada, setComentarioTareaSeleccionada] =
+    useState(null);
+  const [nuevoComentario, setNuevoComentario] = useState("");
+>>>>>>> Stashed changes
+
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  const [tableSize, setTableSize] = useState("middle");
+
+  // ------- Usuario/Permisos -------
+  const userSGP = JSON.parse(localStorage.getItem("userSGP") || "{}") || {};
   const idRol = Number(userSGP.idRol || userSGP.RolID);
   const idUsuario = Number(userSGP.idUsuario || userSGP.UsuarioID);
+<<<<<<< Updated upstream
 
   const [modalComentariosVisible, setModalComentariosVisible] = useState(false);
   const [comentarioTareaSeleccionada, setComentarioTareaSeleccionada] =
@@ -106,7 +181,26 @@ export default function ProyectoDetalle() {
   const puedeCrear = permisosProyecto.Crear;
   const puedeEditar = permisosProyecto.Editar;
   const puedeEliminar = permisosProyecto.Eliminar;
+=======
 
+  const rawPermisos = JSON.parse(localStorage.getItem("permisosSGP") || "null");
+  // Normalizar a array, aunque venga como objeto
+  const permisosLista = Array.isArray(rawPermisos)
+    ? rawPermisos
+    : rawPermisos && typeof rawPermisos === "object"
+    ? [rawPermisos]
+    : [];
+  let permisosProyecto =
+    permisosLista.find(
+      (p) =>
+        p.Modulo === "ProyectoDetalle.jsx" || p.Modulo === "ProyectoDetalle"
+    ) || {};
+  const puedeCrear = !!permisosProyecto.Crear;
+  const puedeEditar = !!permisosProyecto.Editar;
+  const puedeEliminar = !!permisosProyecto.Eliminar;
+>>>>>>> Stashed changes
+
+  // ------- Data (queries) -------
   const { data: proyecto, isLoading: lp } = useQuery(["proyecto", id], () =>
     api.get(`/proyectos/${id}`).then((r) => r.data)
   );
@@ -119,6 +213,10 @@ export default function ProyectoDetalle() {
     api.get("/tareas/").then((r) => r.data.filter((t) => t.ProyectoID === +id))
   );
 
+<<<<<<< Updated upstream
+=======
+  // Importante: este endpoint trae el orden jerárquico (SP) -> { tareas: [...] }
+>>>>>>> Stashed changes
   const { data: tareasPorOrden = [] } = useQuery(["tareas-orden", id], () =>
     api
       .get(`/tareas/por-orden/${id}`)
@@ -133,7 +231,6 @@ export default function ProyectoDetalle() {
   const { data: roles = [] } = useQuery("roles", () =>
     api.get("/roles/").then((r) => r.data)
   );
-
   const { data: estadosTarea = [] } = useQuery("estados-tarea", () =>
     api.get("/estados-tarea/").then((r) => r.data)
   );
@@ -143,7 +240,6 @@ export default function ProyectoDetalle() {
     () => calcularNivelRol(roles, miRolID),
     [roles, miRolID]
   );
-
   const responsable = usuarios.find(
     (u) => u.UsuarioID === proyecto?.UsuarioResponsableID
   );
@@ -152,6 +248,57 @@ export default function ProyectoDetalle() {
     () => (rolResponsableID ? calcularNivelRol(roles, rolResponsableID) : 0),
     [roles, rolResponsableID]
   );
+
+  const estadosMeta = useMemo(() => {
+    const map = {};
+    if (Array.isArray(estadosTarea)) {
+      estadosTarea.forEach((e) => {
+        map[e.estadoFront] = {
+          label: e.etiqueta || e.estadoFront,
+          color: e.colorHex || "gray",
+        };
+      });
+    }
+    return map;
+  }, [estadosTarea]);
+
+  const ordenEstados = useMemo(
+    () =>
+      Array.isArray(estadosTarea) ? estadosTarea.map((e) => e.estadoFront) : [],
+    [estadosTarea]
+  );
+
+  // ------- Mutations -------
+  const crearM = useMutation((datos) => api.post("/tareas/", datos), {
+    onSuccess: () => {
+      refetch();
+      message.success("Tarea creada");
+      setCreateTaskDrawerVisible(false);
+    },
+  });
+
+  const editarM = useMutation(
+    (datos) => api.put(`/tareas/${datos.tarea_id}`, datos),
+    {
+      onSuccess: () => {
+        refetch();
+        message.success("Tarea actualizada");
+      },
+    }
+  );
+
+  const borrarM = useMutation((idT) => api.delete(`/tareas/${idT}`), {
+    onSuccess: () => {
+      refetch();
+      message.success("Tarea eliminada");
+    },
+  });
+
+  // ------- Helpers -------
+  const lookupName = (uid) => {
+    const u = usuarios.find((x) => x.UsuarioID === uid);
+    return u ? u.NombreCompleto : "";
+  };
 
   const getColumnSearchProps = (dataIndex) => ({
     filterDropdown: ({
@@ -182,7 +329,10 @@ export default function ProyectoDetalle() {
             Buscar
           </Button>
           <Button
-            onClick={() => clearFilters()}
+            onClick={() => {
+              clearFilters();
+              confirm({ closeDropdown: true });
+            }}
             size="small"
             style={{ width: 90 }}
           >
@@ -201,8 +351,15 @@ export default function ProyectoDetalle() {
             .toLowerCase()
             .includes(value.toLowerCase())
         : "",
+<<<<<<< Updated upstream
     onFilterDropdownVisibleChange: (visible) => {
       if (visible) setTimeout(() => searchInput.current?.select(), 100);
+=======
+    filterDropdownProps: {
+      onOpenChange: (open) => {
+        if (open) setTimeout(() => searchInput.current?.select(), 100);
+      },
+>>>>>>> Stashed changes
     },
     render: (text) =>
       searchedColumn === dataIndex ? (
@@ -217,25 +374,47 @@ export default function ProyectoDetalle() {
       ),
   });
 
-  const estadosMeta = useMemo(() => {
-    const map = {};
-    if (Array.isArray(estadosTarea)) {
-      estadosTarea.forEach((e) => {
-        map[e.estadoFront] = {
-          label: e.etiqueta || e.estadoFront,
-          color: e.colorHex || "gray",
-        };
-      });
-    }
-    return map;
-  }, [estadosTarea]);
+  // Comentarios: acepta JSON o formato [nombre;fecha;texto] acumulativo
+  function parseComentarios(raw) {
+    if (raw == null || raw === "") return [];
+    try {
+      const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (Array.isArray(data)) {
+        return data
+          .map((c) => ({
+            nombre: c.nombre || c.usuario || c.user || "Comentario",
+            fecha: c.fecha || c.fechaCreacion || c.created_at || "",
+            texto: c.texto || c.mensaje || c.body || c.content || "",
+          }))
+          .sort((a, b) => dayjs(a.fecha).valueOf() - dayjs(b.fecha).valueOf());
+      }
+    } catch (_) {}
 
-  const ordenEstados = useMemo(
+    const str = String(raw);
+    const matches = str.match(/\[[^\]]+\]/g);
+    if (!matches) return [];
+    const arr = matches.map((com) => {
+      const p = com.slice(1, -1).split(";");
+      return {
+        nombre: (p[0] || "Sin nombre").trim(),
+        fecha: (p[1] || "").trim(),
+        texto: p.slice(2).join(";").trim(),
+      };
+    });
+    return arr.sort(
+      (a, b) => dayjs(a.fecha).valueOf() - dayjs(b.fecha).valueOf()
+    );
+  }
+
+  const participantesProyecto = useMemo(
     () =>
-      Array.isArray(estadosTarea) ? estadosTarea.map((e) => e.estadoFront) : [],
-    [estadosTarea]
+      usuarios.filter((u) =>
+        tareas.some((t) => (t.usuario_asignados || []).includes(u.UsuarioID))
+      ),
+    [usuarios, tareas]
   );
 
+<<<<<<< Updated upstream
   const opcionesPadre = useMemo(
     () =>
       (tareasPorOrden || []).map((t) => ({
@@ -306,6 +485,11 @@ export default function ProyectoDetalle() {
   const tareasFiltradas = useMemo(() => {
     if (proyecto?.UsuarioResponsableID === idUsuario) return tareas;
     if (nivelJerarquicoLocal <= nivelResponsable) return tareas;
+=======
+  const tareasFiltradas = useMemo(() => {
+    if (proyecto?.UsuarioResponsableID === idUsuario) return tareas;
+    if (nivelJerarquico <= nivelResponsable) return tareas;
+>>>>>>> Stashed changes
     return tareas.filter(
       (t) =>
         Array.isArray(t.usuario_asignados) &&
@@ -313,6 +497,7 @@ export default function ProyectoDetalle() {
     );
   }, [idUsuario, tareas, proyecto, nivelJerarquicoLocal, nivelResponsable]);
 
+<<<<<<< Updated upstream
   const participantesProyecto = useMemo(
     () =>
       usuarios.filter((u) =>
@@ -335,13 +520,15 @@ export default function ProyectoDetalle() {
     return ids.map((id) => ({ id, nombre: lookupName(id) }));
   }, [seleccionadas]);
 
+=======
+>>>>>>> Stashed changes
   const datosFiltrados = useMemo(
     () =>
       tareasFiltradas
         .filter(
           (t) =>
             !filtro.texto ||
-            t.Titulo.toLowerCase().includes(filtro.texto.toLowerCase())
+            (t.Titulo || "").toLowerCase().includes(filtro.texto.toLowerCase())
         )
         .filter(
           (t) =>
@@ -352,11 +539,9 @@ export default function ProyectoDetalle() {
     [tareasFiltradas, filtro]
   );
 
-  if (lp || lt) return <Spin style={{ margin: 50 }} />;
-  if (!proyecto) return <Text type="danger">Proyecto no encontrado.</Text>;
-
-  const filtrarTareas = (tipo) => {
-    const hoy = dayjs(new Date());
+  // Gantt & calendario
+  const filtrarTareasPorVencimiento = (tipo) => {
+    const hoy = dayjs();
     const inicioSemana = hoy.startOf("week");
     const finSemana = hoy.endOf("week");
     const proxInicio = inicioSemana.add(1, "week");
@@ -385,9 +570,10 @@ export default function ProyectoDetalle() {
   };
 
   const tareasParaGantt = filtroVencimiento
-    ? filtrarTareas(filtroVencimiento)
+    ? filtrarTareasPorVencimiento(filtroVencimiento)
     : tareasFiltradas;
 
+<<<<<<< Updated upstream
   function parseComentarios(raw) {
     if (raw == null || raw === "") return [];
 
@@ -436,6 +622,54 @@ export default function ProyectoDetalle() {
       nodes.set(t.TareaID, { ...t, nivel, children: [] });
     });
 
+=======
+  const ganttTasks = tareasParaGantt
+    .map((t) => ({
+      id: String(t.TareaID),
+      name: `${t.Titulo} - ${t.PorcentajeAvance}%`,
+      start: dayjs(t.FechaInicio).toDate(),
+      end: dayjs(t.FechaLimite).toDate(),
+      progress: t.PorcentajeAvance,
+      type: "task",
+      dependencies: t.antecesora ? [String(t.antecesora)] : [],
+      responsables: (t.usuario_asignados || []).map(lookupName),
+    }))
+    .sort((a, b) => a.start - b.start);
+
+  const events = tareasFiltradas.map((t) => ({
+    id: t.TareaID,
+    title: t.Titulo || "—",
+    start: dayjs(t.FechaInicio).toDate(),
+    end: dayjs(t.FechaFin).toDate(),
+    descripcion: t.Descripcion || "—",
+    estado: t.Estado || "—",
+    usuarioAsignado:
+      t.UsuarioAsignado ||
+      (Array.isArray(t.usuario_asignados) && t.usuario_asignados.length
+        ? lookupName(t.usuario_asignados[0])
+        : "—"),
+    responsables: Array.isArray(t.usuario_asignados)
+      ? t.usuario_asignados.slice(1).map(lookupName)
+      : [],
+    porcentajeAvance: Number(t.PorcentajeAvance) || 0,
+    prioridad: t.prioridad || "—",
+    comentarios: t.comentarios || "—",
+  }));
+
+  // --------- Jerarquía (desde SP con Ruta) ---------
+  const buildTreeFromOrden = (lista) => {
+    const nodes = new Map();
+    const roots = [];
+
+    lista.forEach((t) => {
+      const partesRuta = String(t.Ruta || "")
+        .split(">")
+        .filter(Boolean);
+      const nivel = Math.max(0, partesRuta.length - 1);
+      nodes.set(t.TareaID, { ...t, nivel, children: [] });
+    });
+
+>>>>>>> Stashed changes
     lista.forEach((t) => {
       const partes = String(t.Ruta || "")
         .split(">")
@@ -455,6 +689,7 @@ export default function ProyectoDetalle() {
   };
 
   const jerarquizarGrupo = (grupo) => {
+<<<<<<< Updated upstream
     // Si no hay orden del SP, uso el grupo tal cual
     if (!Array.isArray(tareasPorOrden) || tareasPorOrden.length === 0)
       return grupo;
@@ -485,19 +720,61 @@ export default function ProyectoDetalle() {
   };
 
   // --------- Columnas ----------
+=======
+    if (!Array.isArray(tareasPorOrden) || tareasPorOrden.length === 0)
+      return grupo;
+    const fullById = new Map(grupo.map((g) => [g.TareaID, g]));
+    const idsGrupo = new Set(fullById.keys());
+    const listaOrdenadaFiltrada = tareasPorOrden
+      .filter((t) => idsGrupo.has(t.TareaID))
+      .map((t) => ({ ...fullById.get(t.TareaID), ...t }));
+    return buildTreeFromOrden(listaOrdenadaFiltrada);
+  };
+
+  // --------- Selección con cascada ---------
+  const rowSelection = {
+    selectedRowKeys,
+    checkStrictly: false,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys);
+      setSeleccionadas(rows);
+    },
+  };
+
+  const toTime = (d) => (d ? dayjs(d).valueOf() : Number.NEGATIVE_INFINITY);
+
+  // Opciones para "Tarea padre"
+  const opcionesPadre = useMemo(
+    () =>
+      Array.isArray(tareasPorOrden)
+        ? tareasPorOrden.map((t) => ({ value: t.TareaID, label: t.Titulo }))
+        : [],
+    [tareasPorOrden]
+  );
+
+  // --------- Columnas (mezcla UI/UX + Jerarquía) ---------
+>>>>>>> Stashed changes
   const columns = [
     {
       title: "Tarea",
       dataIndex: "Titulo",
       className: "col-tarea",
+<<<<<<< Updated upstream
       width: 360,
       ...getColumnSearchProps("Titulo"),
+=======
+      width: isMobile ? 260 : 360,
+      ...(isMobile ? {} : getColumnSearchProps("Titulo")),
+>>>>>>> Stashed changes
       render: (_, record) => {
         const nivel = record.nivel || 0;
         const isParent =
           Array.isArray(record.children) && record.children.length > 0;
         const isExpanded = expandedRowKeys.includes(record.TareaID);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
         const toggle = (e) => {
           e.stopPropagation();
           setExpandedRowKeys((prev) =>
@@ -506,12 +783,22 @@ export default function ProyectoDetalle() {
               : [...prev, record.TareaID]
           );
         };
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
         return (
           <Tooltip title={`${record.TareaID} - ${record.Titulo}`}>
             <div
               className={`tarea-cell ${isParent ? "is-parent" : "is-child"}`}
+<<<<<<< Updated upstream
               style={{ paddingLeft: 8 + nivel * 18 }}
+=======
+              style={{
+                paddingLeft: 8 + nivel * (isMobile ? 14 : 18),
+                fontSize: isMobile ? 12 : 14,
+              }}
+>>>>>>> Stashed changes
             >
               {isParent ? (
                 <button
@@ -534,6 +821,7 @@ export default function ProyectoDetalle() {
     {
       title: "Responsables",
       dataIndex: "usuario_asignados",
+<<<<<<< Updated upstream
       width: 150,
       filters: participantesProyecto.map((u) => ({
         text: u.NombreCompleto,
@@ -544,6 +832,24 @@ export default function ProyectoDetalle() {
       render: (arr) =>
         arr && arr.length ? (
           <Avatar.Group maxCount={3} size="small">
+=======
+      width: isMobile ? 120 : 150,
+      filters: isMobile
+        ? []
+        : participantesProyecto.map((u) => ({
+            text: u.NombreCompleto,
+            value: u.UsuarioID,
+          })),
+      onFilter: isMobile
+        ? undefined
+        : (value, record) => (record.usuario_asignados || []).includes(value),
+      render: (arr) =>
+        arr && arr.length ? (
+          <Avatar.Group
+            max={{ count: isMobile ? 2 : 3 }}
+            size={isMobile ? "small" : "default"}
+          >
+>>>>>>> Stashed changes
             {arr.map((uid) => (
               <Tooltip key={uid} title={lookupName(uid)}>
                 <Avatar size="small">
@@ -556,12 +862,17 @@ export default function ProyectoDetalle() {
             ))}
           </Avatar.Group>
         ) : (
+<<<<<<< Updated upstream
           <Text type="secondary">Sin asignar</Text>
+=======
+          <Text type="secondary">{isMobile ? "N/A" : "Sin asignar"}</Text>
+>>>>>>> Stashed changes
         ),
     },
     {
       title: "Estado",
       dataIndex: "Estado",
+<<<<<<< Updated upstream
       width: 120,
       filters: ordenEstados.map((e) => ({
         text: estadosMeta[e].label,
@@ -573,6 +884,22 @@ export default function ProyectoDetalle() {
       ),
     },
     {
+=======
+      width: isMobile ? 90 : 120,
+      filters: isMobile
+        ? []
+        : ordenEstados.map((e) => ({ text: estadosMeta[e].label, value: e })),
+      onFilter: isMobile ? undefined : (val, row) => row.Estado === val,
+      render: (e) => (
+        <Tag color={estadosMeta[e]?.color}>
+          {isMobile
+            ? estadosMeta[e]?.label?.slice(0, 4)
+            : estadosMeta[e]?.label}
+        </Tag>
+      ),
+    },
+    !isMobile && {
+>>>>>>> Stashed changes
       title: "Antecesora",
       dataIndex: "antecesora",
       width: 160,
@@ -582,11 +909,20 @@ export default function ProyectoDetalle() {
         return ant ? ant.Titulo : <Text type="secondary">—</Text>;
       },
     },
+<<<<<<< Updated upstream
     {
       title: "Inicio",
       dataIndex: "FechaInicio",
       width: 130,
       render: (f) => (f ? dayjs(f).format("YYYY-MM-DD") : "—"),
+=======
+    !isMobile && {
+      title: "Inicio",
+      dataIndex: "FechaInicio",
+      width: isTablet ? 110 : 140,
+      render: (f) =>
+        f ? dayjs(f).format(isMobile ? "DD/MM" : "YYYY-MM-DD") : "—",
+>>>>>>> Stashed changes
       sorter: (a, b) => toTime(a.FechaInicio) - toTime(b.FechaInicio),
       sortDirections: ["descend", "ascend"],
       filterDropdown: ({
@@ -629,12 +965,27 @@ export default function ProyectoDetalle() {
         <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
       ),
       onFilter: (value, record) => record.FechaInicio?.startsWith(value),
+<<<<<<< Updated upstream
     },
     {
       title: "Vencimiento",
       dataIndex: "FechaLimite",
       width: 140,
       render: (f) => (f ? dayjs(f).format("YYYY-MM-DD") : "—"),
+=======
+      filterDropdownProps: {
+        onOpenChange: (open) => {
+          if (open) setTimeout(() => searchInput.current?.select(), 100);
+        },
+      },
+    },
+    !isMobile && {
+      title: "Vencimiento",
+      dataIndex: "FechaLimite",
+      width: isTablet ? 120 : 150,
+      render: (f) =>
+        f ? dayjs(f).format(isMobile ? "DD/MM" : "YYYY-MM-DD") : "—",
+>>>>>>> Stashed changes
       sorter: (a, b) => toTime(a.FechaLimite) - toTime(b.FechaLimite),
       sortDirections: ["descend", "ascend"],
       filterDropdown: ({
@@ -677,8 +1028,18 @@ export default function ProyectoDetalle() {
         <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
       ),
       onFilter: (value, record) => record.FechaLimite?.startsWith(value),
+<<<<<<< Updated upstream
     },
     {
+=======
+      filterDropdownProps: {
+        onOpenChange: (open) => {
+          if (open) setTimeout(() => searchInput.current?.select(), 100);
+        },
+      },
+    },
+    !isMobile && {
+>>>>>>> Stashed changes
       title: "Prioridad",
       dataIndex: "prioridad",
       width: 120,
@@ -690,10 +1051,17 @@ export default function ProyectoDetalle() {
         return <Tag color={prioridadMeta[label]}>{label}</Tag>;
       },
     },
+<<<<<<< Updated upstream
     {
       title: "Comentarios",
       dataIndex: "comentarios",
       width: 180,
+=======
+    !isMobile && {
+      title: "Comentarios",
+      dataIndex: "comentarios",
+      width: 160,
+>>>>>>> Stashed changes
       ...getColumnSearchProps("comentarios"),
       render: (_, record) => (
         <Button
@@ -710,9 +1078,19 @@ export default function ProyectoDetalle() {
     {
       title: "Acciones",
       key: "acciones",
+<<<<<<< Updated upstream
       width: 140,
       render: (_, rec) => (
         <Space>
+=======
+      width: isMobile ? 100 : 160,
+      fixed: isMobile ? "right" : undefined,
+      render: (_, rec) => (
+        <Space
+          size={isMobile ? 4 : 8}
+          direction={isMobile ? "vertical" : "horizontal"}
+        >
+>>>>>>> Stashed changes
           <Button
             size="small"
             onClick={() => {
@@ -727,8 +1105,17 @@ export default function ProyectoDetalle() {
                         rec.prioridad
                       ]
                     : rec.prioridad,
+<<<<<<< Updated upstream
                 FechaInicio: dayjs(rec.FechaInicio),
                 FechaLimite: dayjs(rec.FechaLimite),
+=======
+                FechaInicio: rec.FechaInicio
+                  ? dayjs(rec.FechaInicio)
+                  : undefined,
+                FechaLimite: rec.FechaLimite
+                  ? dayjs(rec.FechaLimite)
+                  : undefined,
+>>>>>>> Stashed changes
                 usuario_asignados: rec.usuario_asignados,
                 comentarios: parseComentarios(rec.comentarios)
                   .map(
@@ -737,13 +1124,20 @@ export default function ProyectoDetalle() {
                         "YYYY-MM-DD HH:mm"
                       )}): ${c.texto}`
                   )
+<<<<<<< Updated upstream
                   .join("\n"),
                 antecesora: rec.antecesora || null,
                 tarea_padre: rec.IDTareaPadre ?? null,
+=======
+                  .join(""),
+                antecesora: rec.antecesora ?? undefined,
+                tarea_padre: rec.IDTareaPadre ?? undefined,
+>>>>>>> Stashed changes
               });
               setEditModalVisible(true);
             }}
           >
+<<<<<<< Updated upstream
             Editar
           </Button>
           <Button
@@ -802,10 +1196,448 @@ export default function ProyectoDetalle() {
           transition: transform .06s ease, background .15s ease;
           user-select: none;
         }
+=======
+            {isMobile ? "Ed" : "Editar"}
+          </Button>
+          {!isMobile && (
+            <Button
+              danger
+              size="small"
+              onClick={() => borrarM.mutate(rec.TareaID)}
+            >
+              Eliminar
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ].filter(Boolean);
+
+  if (lp || lt) return <Spin style={{ margin: 50 }} />;
+  if (!proyecto) return <Text type="danger">Proyecto no encontrado.</Text>;
+  // ... otros hooks (useState, useQuery, useMutation, useMemo, etc.)
+  const handleCreate = (d) => {
+    const data = d || nueva.__new || {};
+    if (!data.Titulo || !data.FechaInicio || !data.FechaLimite) {
+      message.error("Título, Inicio y Fin son obligatorios");
+      return;
+    }
+    crearM.mutate({
+      proyecto_id: +id,
+      titulo: data.Titulo,
+      descripcion: data.Descripcion || "",
+      estado: data.Estado || filtro.estado || "pendiente",
+      usuario_asignados: data.usuario_asignados || [],
+      fecha_inicio: dayjs(data.FechaInicio).format("YYYY-MM-DD"),
+      fecha_limite: dayjs(data.FechaLimite).format("YYYY-MM-DD"),
+      porcentaje_avance: Number(data.PorcentajeAvance) || 0,
+      prioridad:
+        { Baja: 1, Media: 2, Alta: 3, Crítica: 4 }[data.prioridad] || 2,
+      comentarios: null,
+      id_tarea_padre: data.tarea_padre || null,
+    });
+    setNueva({});
+  };
+
+  // recién después:
+  if (lp || lt) return <Spin />;
+  if (!proyecto) return <Text type="danger">...</Text>;
+
+  // ---------- Tabs (AntD v5: items) ----------
+  const tabsItems = [];
+  tabsItems.push({
+    key: "1",
+    label: (
+      <span>
+        <TableOutlined /> {isMobile ? "" : "Tabla"}
+      </span>
+    ),
+    children: (
+      <>
+        {/* Filtros desktop */}
+        {!isMobile && (
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={8} md={6}>
+              <Input
+                placeholder="Buscar tareas..."
+                value={filtro.texto}
+                onChange={(e) =>
+                  setFiltro({ ...filtro, texto: e.target.value })
+                }
+                prefix={<SearchOutlined />}
+              />
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <Select
+                placeholder="Filtrar por persona"
+                style={{ width: "100%" }}
+                value={filtro.persona}
+                onChange={(v) => setFiltro({ ...filtro, persona: v })}
+                allowClear
+              >
+                {participantesProyecto.map((u) => (
+                  <Option key={u.UsuarioID} value={u.UsuarioID}>
+                    {u.NombreCompleto}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <Select
+                placeholder="Filtrar por estado"
+                style={{ width: "100%" }}
+                value={filtro.estado}
+                onChange={(v) => setFiltro({ ...filtro, estado: v })}
+                allowClear
+              >
+                {ordenEstados.map((e) => (
+                  <Option key={e} value={e}>
+                    {estadosMeta[e].label}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={24} md={6}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setCreateTaskDrawerVisible(true)}
+                style={{ width: "100%" }}
+              >
+                Nueva Tarea
+              </Button>
+            </Col>
+          </Row>
+        )}
+
+        {/* Botones utilitarios (expandir/contraer + tamaño) */}
+        <Space
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Space>
+            <Button
+              onClick={() => {
+                const keys = [];
+                const walk = (nodes) =>
+                  (nodes || []).forEach((n) => {
+                    if (n.children?.length) keys.push(n.TareaID);
+                    walk(n.children);
+                  });
+                const porEstado = ordenEstados.flatMap((est) =>
+                  jerarquizarGrupo(
+                    datosFiltrados.filter((t) => t.Estado === est)
+                  )
+                );
+                walk(porEstado);
+                setExpandedRowKeys(keys);
+              }}
+            >
+              Expandir todo
+            </Button>
+            <Button onClick={() => setExpandedRowKeys([])}>
+              Contraer todo
+            </Button>
+          </Space>
+          <Segmented
+            value={tableSize}
+            onChange={(v) => setTableSize(v)}
+            options={[
+              { label: "Compacta", value: "small" },
+              { label: "Media", value: "middle" },
+              { label: "Amplia", value: "large" },
+            ]}
+          />
+        </Space>
+
+        <Collapse
+          accordion
+          items={ordenEstados
+            .map((est) => {
+              const grupo = datosFiltrados.filter((t) => t.Estado === est);
+              if (!grupo.length) return null;
+              const dataJerarquica = jerarquizarGrupo(grupo);
+              return {
+                key: est,
+                label: (
+                  <Text strong style={{ color: estadosMeta[est]?.color }}>
+                    {estadosMeta[est]?.label} ({grupo.length})
+                  </Text>
+                ),
+                children: (
+                  <>
+                    {seleccionadas.length > 0 && (
+                      <Button
+                        type="primary"
+                        danger
+                        size={isMobile ? "small" : "default"}
+                        style={{ marginBottom: 12 }}
+                        onClick={() => setModalRecordatorioVisible(true)}
+                      >
+                        Enviar recordatorio ({seleccionadas.length})
+                      </Button>
+                    )}
+
+                    <Table
+                      dataSource={dataJerarquica}
+                      columns={columns}
+                      rowKey="TareaID"
+                      size={tableSize}
+                      className="tabla-tareas"
+                      sticky={{ offsetHeader: 64 }}
+                      expandedRowKeys={expandedRowKeys}
+                      expandable={{
+                        childrenColumnName: "children",
+                        expandRowByClick: false,
+                        rowExpandable: (r) =>
+                          Array.isArray(r.children) && r.children.length > 0,
+                        expandIcon: () => null,
+                      }}
+                      pagination={{
+                        pageSize: isMobile ? 5 : 10,
+                        showSizeChanger: !isMobile,
+                        pageSizeOptions: ["5", "10", "20", "50", "100"],
+                      }}
+                      scroll={{
+                        x: isMobile ? 600 : 1200,
+                        y: isMobile ? 300 : 420,
+                      }}
+                      rowSelection={rowSelection}
+                    />
+
+                    {/* Creación rápida (desktop) */}
+                    {!isMobile && (
+                      <Space style={{ marginTop: 16 }} wrap>
+                        <Input
+                          placeholder="Título"
+                          style={{ width: 200 }}
+                          value={nueva.__new?.Titulo}
+                          onChange={(e) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: { ...n.__new, Titulo: e.target.value },
+                            }))
+                          }
+                        />
+                        <DatePicker
+                          placeholder="Inicio"
+                          value={nueva.__new?.FechaInicio}
+                          onChange={(d) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: { ...n.__new, FechaInicio: d },
+                            }))
+                          }
+                        />
+                        <DatePicker
+                          placeholder="Fin"
+                          value={nueva.__new?.FechaLimite}
+                          onChange={(d) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: { ...n.__new, FechaLimite: d },
+                            }))
+                          }
+                        />
+                        <Select
+                          placeholder="Prioridad"
+                          style={{ width: 130 }}
+                          value={nueva.__new?.prioridad}
+                          onChange={(v) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: { ...n.__new, prioridad: v },
+                            }))
+                          }
+                        >
+                          {Object.keys(prioridadMeta).map((p) => (
+                            <Option key={p} value={p}>
+                              {p}
+                            </Option>
+                          ))}
+                        </Select>
+                        <Select
+                          mode="multiple"
+                          placeholder="Responsables"
+                          style={{ width: 240 }}
+                          value={nueva.__new?.usuario_asignados}
+                          onChange={(arr) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: { ...n.__new, usuario_asignados: arr },
+                            }))
+                          }
+                        >
+                          {usuarios.map((u) => (
+                            <Option key={u.UsuarioID} value={u.UsuarioID}>
+                              {u.NombreCompleto}
+                            </Option>
+                          ))}
+                        </Select>
+                        <Select
+                          allowClear
+                          placeholder="Tarea padre (opcional)"
+                          style={{ width: 260 }}
+                          value={nueva.__new?.tarea_padre}
+                          onChange={(v) =>
+                            setNueva((n) => ({
+                              ...n,
+                              __new: {
+                                ...n.__new,
+                                tarea_padre: v || undefined,
+                              },
+                            }))
+                          }
+                          options={opcionesPadre}
+                        />
+                        <Button
+                          type="primary"
+                          onClick={() => handleCreate(nueva.__new || {})}
+                        >
+                          Guardar
+                        </Button>
+                      </Space>
+                    )}
+                  </>
+                ),
+              };
+            })
+            .filter(Boolean)}
+        />
+      </>
+    ),
+  });
+
+  tabsItems.push({
+    key: "2",
+    label: (
+      <span>
+        <ProjectOutlined /> {isMobile ? "" : "Gantt"}
+      </span>
+    ),
+    children: (
+      <>
+        <Select
+          placeholder="Filtrar por vencimiento"
+          style={{ width: isMobile ? "100%" : 240, marginBottom: 12 }}
+          onChange={(val) => setFiltroVencimiento(val)}
+          allowClear
+        >
+          <Option value="vencidas">Vencidas</Option>
+          <Option value="hoy">Se vencen hoy</Option>
+          <Option value="semana">Esta semana</Option>
+          <Option value="proxima">Próxima semana</Option>
+          <Option value="mes">Este mes</Option>
+        </Select>
+        <div style={{ overflowX: "auto" }}>
+          <GanttView
+            tasks={ganttTasks}
+            viewMode={isMobile ? ViewMode.Week : ViewMode.Day}
+          />
+        </div>
+      </>
+    ),
+  });
+
+  tabsItems.push({
+    key: "3",
+    label: (
+      <span>
+        <BarChartOutlined /> {isMobile ? "" : "Gráfico"}
+      </span>
+    ),
+    children: (
+      <div className="chart-pane" style={{ overflowX: "auto" }}>
+        <ChartView tasks={tareasFiltradas} usuarios={usuarios} />
+      </div>
+    ),
+  });
+
+  tabsItems.push({
+    key: "4",
+    label: (
+      <span>
+        <CalendarOutlined /> {isMobile ? "" : "Calendario"}
+      </span>
+    ),
+    children: (
+      <div style={{ overflowX: "auto" }}>
+        <CalendarView events={events} />
+      </div>
+    ),
+  });
+
+  tabsItems.push({
+    key: "5",
+    label: (
+      <span>
+        <OrderedListOutlined /> {isMobile ? "" : "Kanban"}
+      </span>
+    ),
+    children: <KanbanView tasks={tareasFiltradas} usuarios={usuarios} />,
+  });
+
+  if ([1, 2, 3].includes(idRol)) {
+    tabsItems.push({
+      key: "6",
+      label: (
+        <span>
+          <UserOutlined /> {isMobile ? "" : "Recursos"}
+        </span>
+      ),
+      children: (
+        <RecursosView
+          tareas={tareasFiltradas}
+          usuarios={participantesProyecto}
+        />
+      ),
+    });
+    tabsItems.push({
+      key: "7",
+      label: (
+        <span>
+          <DollarOutlined /> {isMobile ? "" : "Financiero"}
+        </span>
+      ),
+      children: (
+        <FinancieroView
+          tareas={tareasFiltradas}
+          usuarios={participantesProyecto}
+          roles={roles}
+        />
+      ),
+    });
+  }
+
+  return (
+    <div
+      style={{
+        padding: isMobile ? 8 : 16,
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        overflowY: "auto",
+      }}
+    >
+      {/* estilos visuales del árbol / botones +/- */}
+      <style>{`
+        .tabla-tareas td.col-tarea .tarea-cell {
+          border-radius: 8px; padding: 6px 10px; display: inline-flex; gap: 8px; align-items: center; max-width: 100%;
+        }
+        .tabla-tareas td.col-tarea .tarea-cell.is-parent { background: #EEF2F7; font-weight: 600; box-shadow: inset 3px 0 0 #cbd5e1; }
+        .tabla-tareas td.col-tarea .tarea-cell.is-child { background: #F8FAFC; box-shadow: inset 2px 0 0 #e5e7eb; }
+        .tabla-tareas .tarea-id { color: #64748b; font-variant-numeric: tabular-nums; background:#e9eef5; border-radius: 10px; padding: 2px 8px; }
+        .tabla-tareas .tarea-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tabla-tareas .exp-btn { width: 18px; height: 18px; line-height: 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; cursor: pointer; transition: transform .06s ease, background .15s ease; user-select: none; }
+>>>>>>> Stashed changes
         .tabla-tareas .exp-btn:hover { background:#f3f4f6; }
         .tabla-tareas .exp-btn:active { transform: scale(0.95); }
         .tabla-tareas .exp-spacer { display:inline-block; width:18px; height:18px; }
       `}</style>
+<<<<<<< Updated upstream
 
       <Title level={2}>{proyecto.NombreProyecto}</Title>
 
@@ -1122,10 +1954,173 @@ export default function ProyectoDetalle() {
       </Tabs>
 
       {/* MODAL editar */}
+=======
+
+      {/* Header */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        <Col xs={16} sm={18} md={20}>
+          <Title
+            level={isMobile ? 3 : 2}
+            style={{
+              margin: 0,
+              fontSize: isMobile ? 18 : undefined,
+              lineHeight: isMobile ? "24px" : undefined,
+            }}
+          >
+            {isMobile
+              ? proyecto?.NombreProyecto?.length > 20
+                ? `${proyecto.NombreProyecto.substring(0, 20)}...`
+                : proyecto?.NombreProyecto
+              : proyecto?.NombreProyecto}
+          </Title>
+        </Col>
+        <Col xs={8} sm={6} md={4}>
+          <Space>
+            {isMobile && (
+              <>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateTaskDrawerVisible(true)}
+                  size="small"
+                />
+                <Button
+                  icon={<MenuOutlined />}
+                  onClick={() => setFiltersDrawerVisible(true)}
+                  size="small"
+                />
+              </>
+            )}
+          </Space>
+        </Col>
+      </Row>
+
+      {/* Estadísticas móviles */}
+      {isMobile &&
+        (() => {
+          const stats = ordenEstados
+            .map((estado) => ({
+              estado,
+              count: datosFiltrados.filter((t) => t.Estado === estado).length,
+              color: estadosMeta[estado]?.color,
+              label: estadosMeta[estado]?.label,
+            }))
+            .filter((s) => s.count > 0);
+          return (
+            <Row gutter={8} style={{ marginBottom: 16 }}>
+              {stats.map((stat) => (
+                <Col xs={6} sm={4} md={3} key={stat.estado}>
+                  <Card
+                    size="small"
+                    style={{
+                      textAlign: "center",
+                      borderColor: stat.color,
+                      borderWidth: 2,
+                    }}
+                  >
+                    <Text strong style={{ color: stat.color, fontSize: 12 }}>
+                      {stat.label?.substring(0, 4)}
+                    </Text>
+                    <br />
+                    <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                      {stat.count}
+                    </Text>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          );
+        })()}
+
+      <Tabs
+        defaultActiveKey="1"
+        type="card"
+        tabBarGutter={isMobile ? 8 : 20}
+        size={isMobile ? "small" : "default"}
+        items={tabsItems}
+      />
+
+      {/* Drawers / Modales móviles */}
+      {isMobile && renderMobileCreateForm()}
+      {isMobile && (
+        <Drawer
+          title="Filtros"
+          placement="right"
+          width="85%"
+          open={filtersDrawerVisible}
+          onClose={() => setFiltersDrawerVisible(false)}
+        >
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            <div>
+              <Text strong>Buscar por texto:</Text>
+              <Input
+                placeholder="Buscar tareas..."
+                value={filtro.texto}
+                onChange={(e) =>
+                  setFiltro({ ...filtro, texto: e.target.value })
+                }
+                style={{ marginTop: 8 }}
+              />
+            </div>
+            <div>
+              <Text strong>Filtrar por persona:</Text>
+              <Select
+                placeholder="Seleccionar persona"
+                style={{ width: "100%", marginTop: 8 }}
+                value={filtro.persona}
+                onChange={(v) => setFiltro({ ...filtro, persona: v })}
+                allowClear
+              >
+                {participantesProyecto.map((u) => (
+                  <Option key={u.UsuarioID} value={u.UsuarioID}>
+                    {u.NombreCompleto}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Text strong>Filtrar por estado:</Text>
+              <Select
+                placeholder="Seleccionar estado"
+                style={{ width: "100%", marginTop: 8 }}
+                value={filtro.estado}
+                onChange={(v) => setFiltro({ ...filtro, estado: v })}
+                allowClear
+              >
+                {ordenEstados.map((e) => (
+                  <Option key={e} value={e}>
+                    {estadosMeta[e].label}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Text strong>Filtrar por vencimiento:</Text>
+              <Select
+                placeholder="Filtrar por vencimiento"
+                style={{ width: "100%", marginTop: 8 }}
+                value={filtroVencimiento}
+                onChange={(val) => setFiltroVencimiento(val)}
+                allowClear
+              >
+                <Option value="vencidas">Vencidas</Option>
+                <Option value="hoy">Se vencen hoy</Option>
+                <Option value="semana">Esta semana</Option>
+                <Option value="proxima">Próxima semana</Option>
+                <Option value="mes">Este mes</Option>
+              </Select>
+            </div>
+          </Space>
+        </Drawer>
+      )}
+
+      {/* Modal editar */}
+>>>>>>> Stashed changes
       <Modal
-        title="Editar Tarea"
+        title={`Editar tarea ${editingTask?.TareaID ?? ""}`}
         open={editModalVisible}
         onCancel={() => setEditModalVisible(false)}
+<<<<<<< Updated upstream
         onOk={async () => {
           if (!nuevoComentario.trim()) return;
           const user = JSON.parse(localStorage.getItem("userSGP") || "{}");
@@ -1153,6 +2148,98 @@ export default function ProyectoDetalle() {
           };
 
           await api.put(`/tareas/${comentarioTareaSeleccionada.TareaID}`, {
+=======
+        onOk={() => {
+          const v = editForm.getFieldsValue();
+          editarM.mutate({
+            tarea_id: editingTask.TareaID,
+            proyecto_id: editingTask.ProyectoID,
+            titulo: v.Titulo,
+            descripcion: editingTask.Descripcion || "",
+            estado: v.Estado,
+            porcentaje_avance: Number(v.PorcentajeAvance) || 0,
+            prioridad:
+              { Baja: 1, Media: 2, Alta: 3, Crítica: 4 }[v.prioridad] || 2,
+            fecha_inicio: v.FechaInicio?.format("YYYY-MM-DD"),
+            fecha_limite: v.FechaLimite?.format("YYYY-MM-DD"),
+            usuario_asignados: v.usuario_asignados || [],
+            comentarios: editingTask.comentarios,
+            antecesora: v.antecesora || null,
+            id_tarea_padre: v.tarea_padre || null,
+          });
+          setEditModalVisible(false);
+        }}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="Título" name="Titulo">
+            <Input />
+          </Form.Item>
+          <Form.Item label="Estado" name="Estado">
+            <Select>
+              {ordenEstados.map((e) => (
+                <Option key={e} value={e}>
+                  {estadosMeta[e].label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="% Avance" name="PorcentajeAvance">
+            <Input type="number" min={0} max={100} />
+          </Form.Item>
+          <Form.Item label="Prioridad" name="prioridad">
+            <Select>
+              {Object.keys(prioridadMeta).map((p) => (
+                <Option key={p} value={p}>
+                  {p}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Inicio" name="FechaInicio">
+            <DatePicker />
+          </Form.Item>
+          <Form.Item label="Vencimiento" name="FechaLimite">
+            <DatePicker />
+          </Form.Item>
+          <Form.Item label="Responsables" name="usuario_asignados">
+            <Select mode="multiple">
+              {usuarios.map((u) => (
+                <Option key={u.UsuarioID} value={u.UsuarioID}>
+                  {u.NombreCompleto}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Antecesora" name="antecesora">
+            <Input />
+          </Form.Item>
+          <Form.Item label="Tarea padre" name="tarea_padre">
+            <Select allowClear options={opcionesPadre} />
+          </Form.Item>
+          <Form.Item label="Comentarios (solo lectura)">
+            <Input.TextArea readOnly rows={4} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal comentarios (append preservando historial) */}
+      <Modal
+        title={`Comentarios de la tarea ${
+          comentarioTareaSeleccionada?.TareaID ?? ""
+        }`}
+        open={modalComentariosVisible}
+        onCancel={() => setModalComentariosVisible(false)}
+        onOk={async () => {
+          if (!nuevoComentario.trim())
+            return message.error("Escribe un comentario");
+          const nombre = userSGP?.NombreCompleto || "Usuario";
+          const fecha = dayjs().format("YYYY-MM-DD HH:mm");
+          const entrada = `[${nombre};${fecha};${nuevoComentario}]`;
+          const comentariosPayload = `${
+            comentarioTareaSeleccionada?.comentarios || ""
+          }${entrada}`;
+          await editarM.mutate({
+>>>>>>> Stashed changes
             tarea_id: comentarioTareaSeleccionada.TareaID,
             proyecto_id: comentarioTareaSeleccionada.ProyectoID,
             titulo: comentarioTareaSeleccionada.Titulo,
@@ -1160,12 +2247,18 @@ export default function ProyectoDetalle() {
             estado: comentarioTareaSeleccionada.Estado,
             porcentaje_avance: comentarioTareaSeleccionada.PorcentajeAvance,
             prioridad:
-              prioridadTextoANumero[comentarioTareaSeleccionada.prioridad] || 2,
+              { Baja: 1, Media: 2, Alta: 3, Crítica: 4 }[
+                comentarioTareaSeleccionada.prioridad
+              ] || 2,
             fecha_inicio: comentarioTareaSeleccionada.FechaInicio,
             fecha_limite: comentarioTareaSeleccionada.FechaLimite,
             usuario_asignados:
               comentarioTareaSeleccionada.usuario_asignados || [],
+<<<<<<< Updated upstream
             comentarios: comentariosPayload, // <-- YA NO concatenar strings
+=======
+            comentarios: comentariosPayload,
+>>>>>>> Stashed changes
             antecesora: comentarioTareaSeleccionada.antecesora || null,
           });
 
@@ -1400,11 +2493,62 @@ export default function ProyectoDetalle() {
         </div>
         <Input.TextArea
           rows={2}
+<<<<<<< Updated upstream
           placeholder="Escribe un nuevo comentario..."
+=======
+          placeholder="Escribe un nuevo comentario."
+>>>>>>> Stashed changes
           value={nuevoComentario}
           onChange={(e) => setNuevoComentario(e.target.value)}
           style={{ marginTop: 4 }}
         />
+      </Modal>
+
+      {/* Modal recordatorio */}
+      <Modal
+        title="Enviar recordatorio"
+        open={modalRecordatorioVisible}
+        onCancel={() => setModalRecordatorioVisible(false)}
+        onOk={async () => {
+          if (!mensajeRecordatorio.trim())
+            return message.error("Escribe un mensaje");
+          try {
+            await api.post("/notificaciones/recordatorio", {
+              mensaje: mensajeRecordatorio,
+              tareas: seleccionadas.map((t) => t.TareaID),
+              destinatarios: destinatariosSeleccionados,
+            });
+            message.success("Recordatorio enviado");
+            setMensajeRecordatorio("");
+            setDestinatariosSeleccionados([]);
+            setModalRecordatorioVisible(false);
+          } catch (e) {
+            message.error("No se pudo enviar el recordatorio");
+          }
+        }}
+      >
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Input.TextArea
+            rows={4}
+            placeholder="Mensaje para los responsables"
+            value={mensajeRecordatorio}
+            onChange={(e) => setMensajeRecordatorio(e.target.value)}
+          />
+          <Select
+            mode="multiple"
+            allowClear
+            placeholder="Destinatarios específicos (opcional)"
+            value={destinatariosSeleccionados}
+            onChange={setDestinatariosSeleccionados}
+            style={{ width: "100%" }}
+          >
+            {participantesProyecto.map((u) => (
+              <Option key={u.UsuarioID} value={u.UsuarioID}>
+                {u.NombreCompleto}
+              </Option>
+            ))}
+          </Select>
+        </Space>
       </Modal>
     </div>
   );
@@ -1419,9 +2563,12 @@ function calcularNivelRol(roles, rolId) {
   }
   return nivel;
 }
+<<<<<<< Updated upstream
 
 function valsPorcentaje(v) {
   const n = Number(v);
   if (Number.isFinite(n)) return Math.max(0, Math.min(100, n));
   return 0;
 }
+=======
+>>>>>>> Stashed changes
