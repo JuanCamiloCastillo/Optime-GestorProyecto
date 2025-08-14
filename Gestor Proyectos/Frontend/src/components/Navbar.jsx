@@ -89,24 +89,24 @@ export default function Navbar({ collapsed, setCollapsed }) {
     const array = [
       ...(tienePermiso("Dashboard.jsx")
         ? [
-            {
-              key: "/dashboard",
-              icon: <DashboardOutlined />,
-              label: "Dashboard",
-            },
-          ]
+          {
+            key: "/dashboard",
+            icon: <DashboardOutlined />,
+            label: "Dashboard",
+          },
+        ]
         : []),
       ...(tienePermiso("Proyectos.jsx")
         ? [{ key: "/proyectos", icon: <ProfileOutlined />, label: "Proyectos" }]
         : []),
       ...(tienePermiso("PermisosRol.jsx") && showPermisos
         ? [
-            {
-              key: "/permisosRol",
-              icon: <ProfileOutlined />,
-              label: "Permisos Rol",
-            },
-          ]
+          {
+            key: "/permisosRol",
+            icon: <ProfileOutlined />,
+            label: "Permisos Rol",
+          },
+        ]
         : []),
     ];
     return array;
@@ -120,14 +120,14 @@ export default function Navbar({ collapsed, setCollapsed }) {
   const renderMenuContent = () => (
     <>
       <div className="navbar-logo">
-        <img
+        {!collapsed && <img
           src="/assets/imagenes/logo.png"
           alt="Systemgroup Project"
           style={{
             width: collapsed ? "32px" : "170px",
             transition: "width 0.2s",
           }}
-        />
+        />}
         {!collapsed && (
           <>
             <div style={{ marginTop: "12px" }}>
@@ -169,9 +169,10 @@ export default function Navbar({ collapsed, setCollapsed }) {
           block
           style={{ margin: "16px auto", display: "block" }}
         >
-          Salir
+          {!collapsed && "Salir"}
         </Button>
       </Popconfirm>
+
     </>
   );
 
