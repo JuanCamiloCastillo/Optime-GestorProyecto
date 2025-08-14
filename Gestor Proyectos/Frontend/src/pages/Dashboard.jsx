@@ -12,7 +12,8 @@ import {
   Button,
   Space,
   Select,
-  Tag
+  Tag,
+  Drawer
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useQuery } from "react-query";
@@ -53,6 +54,7 @@ const CustomTooltip = ({ active, payload, label }) => {
     </Card>
   );
 };
+
 function getColumnSearchProps(dataIndex) {
   return {
     filterDropdown: ({
@@ -134,6 +136,23 @@ export default function Dashboard() {
   const areaUsuario = userSGP.area || "";
   const [selectedProjects, setSelectedProjects] = useState([]);
 
+  // Estado para controlar si usamos Modal o Drawer
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 768);
+
+  // Escuchar cambios de tamaño de ventana
+  React.useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      setIsMobile(width <= 1024 || height <= 600);
+      setIsSmallScreen(width <= 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const tareasFiltradas = useMemo(() => {
     const visibles =
       JSON.parse(localStorage.getItem("proyectosVisiblesSGP")) || [];
@@ -200,6 +219,7 @@ export default function Dashboard() {
       </Card>
     );
   };
+
   const filterByDate = (t) => {
     if (filterPeriod === "all") return true;
     const fecha = dayjs(t.FechaLimite);
@@ -313,39 +333,174 @@ export default function Dashboard() {
     return <Text type="danger">Error cargando datos</Text>;
 
   const handleChartClick = (filtro, tipo) => {
-  let dataFiltrada = [];
+    let dataFiltrada = [];
 
-  if (tipo === "estado") {
-    dataFiltrada = tareasFiltradas.filter((t) => t.Estado === filtro);
-  } else if (tipo === "responsable") {
-    dataFiltrada = tareasFiltradas.filter((t) =>
-      (t.usuario_asignados || []).some((id) => nombrePorId[id] === filtro)
-    );
-  } else if (tipo === "vencidas") {
-    dataFiltrada = tareasFiltradas.filter(
-      (t) =>
-        dayjs(t.FechaLimite).isBefore(dayjs(), "day") &&
-        t.Estado === filtro &&
-        t.Estado !== "terminado"
-    );
-  } else if (tipo === "vencimiento") {
-    dataFiltrada = tareasFiltradas.filter(
-      (t) =>
-        dayjs(t.FechaLimite).format("DD MMM") === filtro &&
-        t.Estado !== "terminado"
-    );
-  }
+    if (tipo === "estado") {
+      dataFiltrada = tareasFiltradas.filter((t) => t.Estado === filtro);
+    } else if (tipo === "responsable") {
+      dataFiltrada = tareasFiltradas.filter((t) =>
+        (t.usuario_asignados || []).some((id) => nombrePorId[id] === filtro)
+      );
+    } else if (tipo === "vencidas") {
+      dataFiltrada = tareasFiltradas.filter(
+        (t) =>
+          dayjs(t.FechaLimite).isBefore(dayjs(), "day") &&
+          t.Estado === filtro &&
+          t.Estado !== "terminado"
+      );
+    } else if (tipo === "vencimiento") {
+      dataFiltrada = tareasFiltradas.filter(
+        (t) =>
+          dayjs(t.FechaLimite).format("DD MMM") === filtro &&
+          t.Estado !== "terminado"
+      );
+    }
 
-  setModalData({
-    title: `Tareas filtradas por ${tipo}: ${filtro}`,
-    data: dataFiltrada,
-  });
-  setModalVisible(true);
-};
+    setModalData({
+      title: `Tareas filtradas por ${tipo}: ${filtro}`,
+      data: dataFiltrada,
+    });
+    setModalVisible(true);
+  };
 
+  // Componente de tabla responsive
+  const TareasTable = ({ data, title }) => (
+    <div>
+      <Text strong style={{ marginBottom: 16, display: 'block' }}>{title}</Text>
+      <Table
+        dataSource={data}
+        rowKey="TareaID"
+        pagination={isMobile ? {
+          pageSize: isSmallScreen ? 6 : 8,
+          size: 'small',
+          simple: true,
+          showLessItems: true
+        } : {
+          pageSize: 5,
+          size: 'default',
+          showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} tareas`,
+          pageSizeOptions: ['5', '10', '20', '50']
+        }}
+        scroll={{ x: isMobile ? 900 : false }}
+        size={isMobile ? 'small' : 'middle'}
+      >
+        <Column
+          title="Tarea"
+          dataIndex="Titulo"
+          key="Titulo"
+          width={isMobile ? (isSmallScreen ? 120 : 140) : 200}
+          ellipsis={true}
+          {...getColumnSearchProps("Titulo")}
+          render={(text) => (
+            <div style={{
+              wordBreak: 'break-word',
+              whiteSpace: isMobile ? 'nowrap' : 'normal',
+              overflow: isMobile ? 'hidden' : 'visible',
+              textOverflow: isMobile ? 'ellipsis' : 'clip',
+              fontSize: isSmallScreen ? '11px' : '12px'
+            }}>
+              {text}
+            </div>
+          )}
+        />
+        <Column
+          title="Proyecto"
+          dataIndex="ProyectoID"
+          key="ProyectoID"
+          width={isMobile ? (isSmallScreen ? 100 : 120) : 150}
+          ellipsis={true}
+          render={(id) => (
+            <div style={{
+              wordBreak: 'break-word',
+              whiteSpace: isMobile ? 'nowrap' : 'normal',
+              overflow: isMobile ? 'hidden' : 'visible',
+              textOverflow: isMobile ? 'ellipsis' : 'clip',
+              fontSize: isSmallScreen ? '11px' : '12px'
+            }}>
+              {proyectoPorId[id] || "Sin asignar"}
+            </div>
+          )}
+        />
+        <Column
+          title="Responsable"
+          dataIndex="usuario_asignados"
+          key="Responsable"
+          width={isMobile ? (isSmallScreen ? 100 : 120) : 150}
+          ellipsis={true}
+          render={(ids) => (
+            <div style={{
+              wordBreak: 'break-word',
+              whiteSpace: isMobile ? 'nowrap' : 'normal',
+              overflow: isMobile ? 'hidden' : 'visible',
+              textOverflow: isMobile ? 'ellipsis' : 'clip',
+              fontSize: isSmallScreen ? '11px' : '12px'
+            }}>
+              {(ids || [])
+                .map((id) => nombrePorId[id])
+                .filter((n) => n)
+                .join(", ") || "Sin asignar"}
+            </div>
+          )}
+        />
+        <Column
+          title="Inicio"
+          dataIndex="FechaInicio"
+          key="FechaInicio"
+          width={isMobile ? (isSmallScreen ? 70 : 80) : 110}
+          render={(d) => (
+            <span style={{ fontSize: isSmallScreen ? '10px' : '12px' }}>
+              {dayjs(d).format(isMobile ? "DD/MM" : "DD MMM YYYY")}
+            </span>
+          )}
+        />
+        <Column
+          title="Fin"
+          dataIndex="FechaLimite"
+          key="FechaLimite"
+          width={isMobile ? (isSmallScreen ? 70 : 80) : 110}
+          render={(d) => (
+            <span style={{ fontSize: isSmallScreen ? '10px' : '12px' }}>
+              {dayjs(d).format(isMobile ? "DD/MM" : "DD MMM YYYY")}
+            </span>
+          )}
+        />
+        <Column
+          title="Estado"
+          dataIndex="Estado"
+          key="Estado"
+          width={isMobile ? (isSmallScreen ? 60 : 70) : 100}
+          render={(e) => (
+            <Tag
+              color={estadosMeta[e]?.color}
+              style={{
+                fontSize: isSmallScreen ? '9px' : '10px',
+                padding: isSmallScreen ? '1px 4px' : '2px 6px'
+              }}
+            >
+              {isMobile ?
+                (estadosMeta[e]?.label || e).substring(0, isSmallScreen ? 4 : 6) + (isSmallScreen ? '' : '...') :
+                (estadosMeta[e]?.label || e)
+              }
+            </Tag>
+          )}
+        />
+        <Column
+          title="Prioridad"
+          dataIndex="prioridad"
+          key="prioridad"
+          width={isMobile ? (isSmallScreen ? 50 : 60) : 100}
+          render={(text) => (
+            <span style={{ fontSize: isSmallScreen ? '10px' : '12px' }}>
+              {text}
+            </span>
+          )}
+        />
+      </Table>
+    </div>
+  );
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: isMobile ? 12 : 24 }}>
       <Row gutter={[16, 16]} justify="center" style={{ marginBottom: 24 }}>
         {estados.map((s, i) => (
           <Col xs={12} sm={12} md={6} key={i}>
@@ -358,16 +513,24 @@ export default function Dashboard() {
                   allowedColors[i % allowedColors.length],
                 borderRadius: 8,
                 textAlign: "center",
-                minHeight: 100,
+                minHeight: isMobile ? 80 : 100,
               }}
-              bodyStyle={{ padding: 16 }}
+              bodyStyle={{ padding: isMobile ? 12 : 16 }}
             >
-              <Text style={{ color: "#fff", fontSize: 12, display: "block" }}>
+              <Text style={{
+                color: "#fff",
+                fontSize: isMobile ? 10 : 12,
+                display: "block"
+              }}>
                 {estadosMeta[s.estadoKey]?.label || s.estadoKey}
               </Text>
               <Statistic
                 value={s.value}
-                valueStyle={{ color: "#fff", fontSize: 28, fontWeight: "bold" }}
+                valueStyle={{
+                  color: "#fff",
+                  fontSize: isMobile ? 20 : 28,
+                  fontWeight: "bold"
+                }}
               />
             </Card>
           </Col>
@@ -384,6 +547,7 @@ export default function Dashboard() {
             value={selectedProjects}
             onChange={setSelectedProjects}
             style={{ width: "100%" }}
+            size={isMobile ? 'small' : 'middle'}
           >
             {proyectosFiltrados.map((p) => (
               <Option key={p.ProyectoID} value={p.ProyectoID}>
@@ -398,6 +562,7 @@ export default function Dashboard() {
             value={filterPeriod}
             onChange={setFilterPeriod}
             style={{ width: "100%" }}
+            size={isMobile ? 'small' : 'middle'}
           >
             <Option value="all">Todas las fechas</Option>
             <Option value="today">Hoy</Option>
@@ -407,196 +572,184 @@ export default function Dashboard() {
           </Select>
         </Col>
       </Row>
-      <div style={{ maxHeight: "55vh", overflowY: "auto", paddingRight: 5 }}>   
+      <div style={{ maxHeight: "55vh", overflowY: "auto", overflowX: "hidden", paddingRight: 5 }}>
         <Row gutter={[16, 16]}>
-        <Col xs={24} md={12}>
-          <Card title="Tareas por estado">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart
-                onClick={(e) => handleChartClick(e.activeLabel, "estado")}
-              >
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius="80%"
+          <Col xs={24} md={12}>
+            <Card title="Tareas por estado">
+              <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
+                <PieChart
+                  onClick={(e) => handleChartClick(e.activeLabel, "estado")}
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        entry.fill ||
-                        allowedColors[index % allowedColors.length]
-                      }
-                    />
-                  ))}
-                </Pie>
-                <Legend verticalAlign="bottom" />
-                <RechartsTooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={isMobile ? "60%" : "80%"}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          entry.fill ||
+                          allowedColors[index % allowedColors.length]
+                        }
+                      />
+                    ))}
+                  </Pie>
+                  <Legend
+                    verticalAlign="bottom"
+                    wrapperStyle={{ fontSize: isMobile ? '10px' : '12px' }}
+                  />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
 
-        <Col xs={24} md={12}>
-          <Card title="Tareas por responsable">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={porResponsable}
-                onClick={(e) => handleChartClick(e.activeLabel, "responsable")}
-              >
-                <XAxis
-                  dataKey="name"
-                  angle={-90}
-                  textAnchor="end"
-                  interval={0}
-                  height={120}
-                  tick={{ dx: -6 }}
-                />
-                <YAxis allowDecimals={false} />
-                <RechartsTooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {porResponsable.map((e, i) => (
-                    <Cell key={i} fill={e.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
+          <Col xs={24} md={12}>
+            <Card title="Tareas por responsable">
+              <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
+                <BarChart
+                  data={porResponsable}
+                  onClick={(e) => handleChartClick(e.activeLabel, "responsable")}
+                >
+                  <XAxis
+                    dataKey="name"
+                    angle={-90}
+                    textAnchor="end"
+                    interval={0}
+                    height={isMobile ? 100 : 120}
+                    tick={{ dx: -6, fontSize: isMobile ? 8 : 10 }}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: isMobile ? 8 : 10 }} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value">
+                    {porResponsable.map((e, i) => (
+                      <Cell key={i} fill={e.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
 
-        <Col xs={24} md={12}>
-          <Card title="Tareas vencidas por estado">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={vencidasPorEstado}
-                onClick={(e) => handleChartClick(e.activeLabel, "vencidas")}
-              >
-                <XAxis dataKey="name" interval={0} angle={0} height={60} />{" "}
-                {/* Usa "name" aquí */}
-                <YAxis allowDecimals={false} />
-                <RechartsTooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {vencidasPorEstado.map((e, i) => (
-                    <Cell key={i} fill={e.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
+          <Col xs={24} md={12}>
+            <Card title="Tareas vencidas por estado">
+              <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
+                <BarChart
+                  data={vencidasPorEstado}
+                  onClick={(e) => handleChartClick(e.activeLabel, "vencidas")}
+                >
+                  <XAxis
+                    dataKey="name"
+                    interval={0}
+                    angle={isMobile ? -60 : 0}
+                    height={isMobile ? 80 : 60}
+                    tick={{ fontSize: isMobile ? 8 : 10 }}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: isMobile ? 8 : 10 }} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value">
+                    {vencidasPorEstado.map((e, i) => (
+                      <Cell key={i} fill={e.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
 
-        <Col xs={24} md={12}>
-          <Card title="Tareas por vencimiento">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={porVencimiento}
-                barSize={45}
-                barCategoryGap={-15}
-                onClick={(e) => handleChartClick(e.activeLabel, "vencimiento")}
-              >
-                <XAxis
-                  dataKey="date"
-                  angle={-90}
-                  textAnchor="end"
-                  interval={0}
-                  height={120}
-                  tick={{ dx: -6 }}
-                />
-                <YAxis allowDecimals={false} />
-                <RechartsTooltip content={<VencimientoTooltip />} />
-                <Legend verticalAlign="bottom" />
-                {Array.from(
-                  new Set(
-                    porVencimiento.flatMap((d) =>
-                      Object.keys(d).filter((k) => k !== "date" && d[k] > 0)
+          <Col xs={24} md={12}>
+            <Card title="Tareas por vencimiento">
+              <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
+                <BarChart
+                  data={porVencimiento}
+                  barSize={isMobile ? 25 : 45}
+                  barCategoryGap={-15}
+                  onClick={(e) => handleChartClick(e.activeLabel, "vencimiento")}
+                >
+                  <XAxis
+                    dataKey="date"
+                    angle={-90}
+                    textAnchor="end"
+                    interval={0}
+                    height={isMobile ? 100 : 120}
+                    tick={{ dx: -5, fontSize: isMobile ? 7 : 9 }}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: isMobile ? 8 : 10 }} />
+                  <RechartsTooltip content={<VencimientoTooltip />} />
+                  <Legend
+                    verticalAlign="bottom"
+                    wrapperStyle={{ fontSize: isMobile ? '8px' : '12px' }}
+                  />
+                  {Array.from(
+                    new Set(
+                      porVencimiento.flatMap((d) =>
+                        Object.keys(d).filter((k) => k !== "date" && d[k] > 0)
+                      )
                     )
-                  )
-                ).map((estadoKey, i) => {
-                  const estado = estadosTarea.find(
-                    (e) => e.estadoFront === estadoKey
-                  );
-                  return (
-                    <Bar
-                      key={estadoKey}
-                      dataKey={estadoKey}
-                      name={estado?.etiqueta || estadoKey}
-                      fill={
-                        estado?.colorHex ||
-                        allowedColors[i % allowedColors.length]
-                      }
-                    />
-                  );
-                })}
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
+                  ).map((estadoKey, i) => {
+                    const estado = estadosTarea.find(
+                      (e) => e.estadoFront === estadoKey
+                    );
+                    return (
+                      <Bar
+                        key={estadoKey}
+                        dataKey={estadoKey}
+                        name={estado?.etiqueta || estadoKey}
+                        fill={
+                          estado?.colorHex ||
+                          allowedColors[i % allowedColors.length]
+                        }
+                      />
+                    );
+                  })}
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
         </Row>
       </div>
-      <Modal
-        open={modalVisible}
-        title={modalData.title}
-        footer={null}
-        onCancel={() => setModalVisible(false)}
-        width={900}
-      >
-        <Table
-          dataSource={modalData.data}
-          rowKey="TareaID"
-          pagination={{ pageSize: 5 }}
-        >
-          <Column
-            title="Tarea"
-            dataIndex="Titulo"
-            key="Titulo"
-            {...getColumnSearchProps("Titulo")}
-          />
-          <Column
-            title="Proyecto"
-            dataIndex="ProyectoID"
-            key="ProyectoID"
-            render={(id) => proyectoPorId[id] || "Sin asignar"}
-          />
-          <Column
-            title="Responsable"
-            dataIndex="usuario_asignados"
-            key="Responsable"
-            render={(ids) =>
-              (ids || [])
-                .map((id) => nombrePorId[id])
-                .filter((n) => n)
-                .join(", ") || "Sin asignar"
-            }
-          />
-          <Column
-            title="Inicio"
-            dataIndex="FechaInicio"
-            key="FechaInicio"
-            render={(d) => dayjs(d).format("DD MMM YYYY")}
-          />
-          <Column
-            title="Fin"
-            dataIndex="FechaLimite"
-            key="FechaLimite"
-            render={(d) => dayjs(d).format("DD MMM YYYY")}
-          />
-          <Column
-            title="Estado"
-            dataIndex="Estado"
-            key="Estado"
-            render={(e) => (
-              <Tag color={estadosMeta[e]?.color}>
-                {estadosMeta[e]?.label || e}
-              </Tag>
-            )}
-          />
 
-          <Column title="Prioridad" dataIndex="prioridad" key="prioridad" />
-        </Table>
-      </Modal>
+      {/* Modal para Desktop */}
+      {!isMobile && (
+        <Modal
+          open={modalVisible}
+          title={modalData.title}
+          footer={null}
+          onCancel={() => setModalVisible(false)}
+          width="90%"
+          style={{ top: 20 }}
+        >
+          <TareasTable data={modalData.data} title="" />
+        </Modal>
+      )}
+
+      {/* Drawer para Mobile*/}
+      {isMobile && (
+        <Drawer
+          title={
+            <div style={{
+              fontSize: isSmallScreen ? '14px' : '16px',
+              wordBreak: 'break-word'
+            }}>
+              {modalData.title}
+            </div>
+          }
+          placement="bottom"
+          onClose={() => setModalVisible(false)}
+          open={modalVisible}
+          height={isSmallScreen ? "90vh" : "85vh"}
+          bodyStyle={{
+            padding: isSmallScreen ? 8 : 16,
+            paddingBottom: isSmallScreen ? 60 : 16
+          }}
+        >
+          <TareasTable data={modalData.data} title="" />
+        </Drawer>
+      )}
     </div>
   );
 }

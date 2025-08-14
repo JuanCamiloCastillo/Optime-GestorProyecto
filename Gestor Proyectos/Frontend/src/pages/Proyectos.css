@@ -1,5 +1,5 @@
-.proyectos-page h2 {
-  margin: 0;
+.proyectos-page {
+  margin-bottom: 100px;
 }
 
 .project-card {
@@ -11,7 +11,7 @@
     width: 100%;
     height: 140px;
     object-fit: cover;
-    object-position: center;/* centra la parte mostrada */
+    object-position: center;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
 }

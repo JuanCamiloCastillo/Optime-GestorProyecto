@@ -37,7 +37,7 @@ const { Option } = Select;
 
 export default function Proyectos() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient(); // ✅ NUEVO
+  const queryClient = useQueryClient();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModal, setEditModal] = useState({
     visible: false,
@@ -49,23 +49,52 @@ export default function Proyectos() {
   const userSGP = JSON.parse(localStorage.getItem("userSGP") || "{}");
   const idRol = Number(userSGP?.RolID) || null;
   const idUsuario = Number(userSGP?.UsuarioID) || null;
-  const areaUsuario = userSGP?.area || "";
 
   const permisosModuloSGP = JSON.parse(
     localStorage.getItem("permisosModuloSGP") || "[]"
   );
-  // Busca el permiso para este módulo
   const permisoProyecto =
     permisosModuloSGP.find((p) => p.Modulo === "Proyectos.jsx") || {};
   const canCreate = permisoProyecto.Crear === true;
   const canEdit = permisoProyecto.Editar === true;
   const canDelete = permisoProyecto.Eliminar === true;
 
-  const { data: proyectos = [], isLoading: loadingP } = useQuery(
-    "proyectos",
-    () => api.get("/proyectos/").then((r) => r.data || [])
+  // VerTodosProyectos solo si es booleano true
+  const permisosSGP = JSON.parse(localStorage.getItem("permisosSGP") || "{}");
+  const canViewAll = permisosSGP.VerTodosProyectos === true;
+
+  // === SOLO TRAE LO QUE DEVUELVE LA API DE JERARQUÍA ===
+  const {
+    data: proyectos = [],
+    isLoading: loadingP,
+    refetch: refetchProyectos,
+  } = useQuery(
+    ["proyectos-jerarquia", canViewAll, idRol, idUsuario],
+    async () => {
+      // Si realmente quieres que "ver todo" ignore jerarquía, deja este if.
+      // Para forzar SIEMPRE la API, comenta el if.
+      
+      const params = {};
+      if (idRol) params.rol_id = idRol;
+      if (idUsuario) params.usuario_id = idUsuario;
+
+      console.debug("GET /acceso/proyectos-por-jerarquia params =>", params);
+
+      const r = await api.get("/acceso/proyectos-por-jerarquia", { params });
+      console.debug(
+        "GET /acceso/proyectos-por-jerarquia len =>",
+        r.data?.length ?? 0
+      );
+      return r.data || [];
+    },
+    {
+      keepPreviousData: false,        // <- no mostrar datos anteriores
+      refetchOnWindowFocus: false,    // <- no refetch al enfocar
+      staleTime: 0,
+    }
   );
 
+  // Tareas, usuarios y áreas (para avatares, progreso, selects)
   const { data: tareas = [], isLoading: loadingT } = useQuery("tareas", () =>
     api.get("/tareas/").then((r) => r.data || [])
   );
@@ -78,12 +107,8 @@ export default function Proyectos() {
   const { data: areas = [], isLoading: loadingA } = useQuery("areas", () =>
     api.get("/areas/").then((r) => r.data || [])
   );
-  const proyectosVisibles = useMemo(() => {
-    const visibles =
-      JSON.parse(localStorage.getItem("proyectosVisiblesSGP")) || [];
-    return proyectos.filter((p) => visibles.includes(p.ProyectoID));
-  }, [proyectos]);
 
+  // Responsables por proyecto (para avatares)
   const responsablesPorProyecto = useMemo(() => {
     const map = {};
     tareas.forEach((t) => {
@@ -101,6 +126,7 @@ export default function Proyectos() {
     );
   }, [tareas, usuarios]);
 
+  // Progreso por proyecto
   const progresoPorProyecto = useMemo(() => {
     const map = {};
     proyectos.forEach((p) => {
@@ -117,66 +143,6 @@ export default function Proyectos() {
     });
     return map;
   }, [proyectos, tareas]);
-
-  // 1) Controla si puede ver TODO (rol presidente, admin…)
-  const permisosSGP = JSON.parse(localStorage.getItem("permisosSGP") || "{}");
-  const canViewAll = permisosSGP.VerTodosProyectos === true;
-
-  // 2) Calcula recursivamente el subtree de áreas donde es responsable
-  const allowedAreaIds = useMemo(() => {
-    if (canViewAll) return new Set(areas.map((a) => a.idArea));
-
-    const childrenMap = areas.reduce((m, a) => {
-      (m[a.ParentAreaID] = m[a.ParentAreaID] || []).push(a.idArea);
-      return m;
-    }, {});
-
-    const roots = areas
-      .filter((a) => a.ResponsableID === idUsuario)
-      .map((a) => a.idArea);
-
-    const result = new Set();
-    function dfs(id) {
-      if (result.has(id)) return;
-      result.add(id);
-      (childrenMap[id] || []).forEach(dfs);
-    }
-    roots.forEach(dfs);
-
-    return result;
-  }, [areas, idUsuario, canViewAll]);
-
-  // 3) Nuevo useMemo que reemplaza al viejo proyectosFiltrados
-  const proyectosFiltrados = useMemo(() => {
-    if (canViewAll) return proyectos;
-
-    // a) Propios
-    const own = proyectos.filter((p) => p.UsuarioPropietarioID === idUsuario);
-
-    // b) Participados (tareas asignadas)
-    const part = proyectos.filter((p) =>
-      (responsablesPorProyecto[p.ProyectoID] || []).some(
-        (u) => u.UsuarioID === idUsuario
-      )
-    );
-
-    // c) Organizacionales (están en sus áreas)
-    const org = proyectos.filter((p) => allowedAreaIds.has(p.area));
-
-    // Unión sin duplicados
-    const seen = new Set();
-    return [...own, ...part, ...org].filter((p) => {
-      if (seen.has(p.ProyectoID)) return false;
-      seen.add(p.ProyectoID);
-      return true;
-    });
-  }, [
-    proyectos,
-    responsablesPorProyecto,
-    allowedAreaIds,
-    idUsuario,
-    canViewAll,
-  ]);
 
   if (loadingP || loadingT || loadingU || loadingA) {
     return <Spin style={{ margin: 50 }} />;
@@ -195,8 +161,9 @@ export default function Proyectos() {
       await api.post("/proyectos/", payload);
       message.success("Proyecto creado");
 
-      // ✅ Refresca lista de proyectos
-      queryClient.invalidateQueries("proyectos");
+      // Refrescar
+      await queryClient.invalidateQueries("proyectos");
+      await refetchProyectos();
 
       setCreateModalVisible(false);
       form.resetFields();
@@ -230,8 +197,9 @@ export default function Proyectos() {
 
       message.success("Proyecto actualizado");
 
-      // ✅ Refresca lista de proyectos
-      queryClient.invalidateQueries("proyectos");
+      // Refrescar
+      await queryClient.invalidateQueries("proyectos");
+      await refetchProyectos();
 
       setEditModal({ visible: false, proyecto: null });
       form.resetFields();
@@ -245,7 +213,8 @@ export default function Proyectos() {
     try {
       await api.delete(`/proyectos/${id}`);
       message.success("Proyecto eliminado");
-      queryClient.invalidateQueries("proyectos"); // ✅ También refetch
+      await queryClient.invalidateQueries("proyectos");
+      await refetchProyectos();
     } catch {
       message.error("Error al eliminar proyecto");
     }
@@ -253,7 +222,7 @@ export default function Proyectos() {
 
   return (
     <div className="proyectos-page">
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 33 }}>
         <Title level={2} style={{ margin: 0 }}>
           Proyectos
         </Title>
@@ -270,97 +239,109 @@ export default function Proyectos() {
           </Button>
         )}
       </Row>
-      <div style={{ maxHeight: "65vh", overflowY: "auto", paddingRight: 8 }}>
+
+      <div style={{
+  height: "calc(100vh - 120px)",
+  overflowY: "auto",
+  paddingRight: 8,
+  paddingBottom: 56
+}}>
+
         <Row gutter={[16, 16]}>
-        {proyectosVisibles.map((proy) => (
-          <Col key={proy.ProyectoID} xs={24} sm={12} md={8} lg={6}>
-            <Card
-              hoverable
-              className="project-card"
-              cover={
-                <img
-                  alt={proy.NombreProyecto}
-                  src={proy.imagen || "/assets/imagenes/default-project.jpg"}
-                  className="project-card-cover"
-                />
-              }
-              onClick={() => navigate(`/proyectos/${proy.ProyectoID}`)}
-              actions={
-                canEdit && canDelete
-                  ? [
-                      <Tooltip title="Editar" key="edit">
-                        <EditOutlined
-                          onClick={(e) => {
+          {proyectos.map((proy) => (
+            <Col key={proy.ProyectoID} xs={24} sm={12} md={8} lg={6}>
+              <Card
+                hoverable
+                className="project-card"
+                cover={
+                  <img
+                    alt={proy.NombreProyecto}
+                    src={proy.imagen || "/assets/imagenes/default-project.jpg"}
+                    className="project-card-cover"
+                  />
+                }
+                onClick={() => navigate(`/proyectos/${proy.ProyectoID}`)}
+                actions={
+                  canEdit && canDelete
+                    ? [
+                        <Tooltip title="Editar" key="edit">
+                          <EditOutlined
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditModal({ visible: true, proyecto: proy });
+                              form.setFieldsValue({
+                                nombre_proyecto: proy.NombreProyecto,
+                                descripcion: proy.descripcion,
+                                area_id: proy.area,
+                                usuario_propietario_id:
+                                  proy.UsuarioPropietarioID,
+                                rango: [
+                                  proy.FechaInicio
+                                    ? dayjs(proy.FechaInicio)
+                                    : null,
+                                  proy.FechaFin ? dayjs(proy.FechaFin) : null,
+                                ].filter(Boolean),
+                              });
+                            }}
+                          />
+                        </Tooltip>,
+                        <Popconfirm
+                          title="¿Eliminar proyecto?"
+                          onConfirm={(e) => {
                             e.stopPropagation();
-                            setEditModal({ visible: true, proyecto: proy });
-                            form.setFieldsValue({
-                              nombre_proyecto: proy.NombreProyecto,
-                              descripcion: proy.descripcion,
-                              area_id: proy.AreaID,
-                              usuario_propietario_id: proy.UsuarioPropietarioID,
-                              rango: [
-                                dayjs(proy.FechaInicio),
-                                dayjs(proy.FechaFin),
-                              ],
-                            });
+                            handleDelete(proy.ProyectoID);
                           }}
-                        />
-                      </Tooltip>,
-                      <Popconfirm
-                        title="¿Eliminar proyecto?"
-                        onConfirm={(e) => {
-                          e.stopPropagation();
-                          handleDelete(proy.ProyectoID);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        key="delete"
-                      >
-                        <DeleteOutlined />
-                      </Popconfirm>,
-                    ]
-                  : []
-              }
-            >
-              <div className="project-card-body">
-                <Text type="secondary">{proy.area}</Text>
-                <Title level={4}>{proy.NombreProyecto}</Title>
-                <Text>{proy.descripcion?.slice(0, 80)}…</Text>
+                          onClick={(e) => e.stopPropagation()}
+                          key="delete"
+                        >
+                          <DeleteOutlined />
+                        </Popconfirm>,
+                      ]
+                    : []
+                }
+              >
+                <div className="project-card-body">
+                  <Text type="secondary">{proy.area}</Text>
+                  <Title level={4}>{proy.NombreProyecto}</Title>
+                  <Text>{proy.descripcion?.slice(0, 80)}…</Text>
 
-                <Progress
-                  percent={progresoPorProyecto[proy.ProyectoID]}
-                  showInfo
-                  status="active"
-                  strokeWidth={8}
-                  trailColor="#eee"
-                  strokeColor={{ from: "#108ee9", to: "#87d068" }}
-                  style={{ margin: "8px 0" }}
-                />
+                  <Progress
+                    percent={progresoPorProyecto[proy.ProyectoID]}
+                    showInfo
+                    status="active"
+                    strokeWidth={8}
+                    trailColor="#eee"
+                    strokeColor={{ from: "#108ee9", to: "#87d068" }}
+                    style={{ margin: "8px 0" }}
+                  />
 
-                <Row justify="space-between" align="middle">
-                  <Text type="secondary">
-                    {
-                      tareas.filter((t) => t.ProyectoID === proy.ProyectoID)
-                        .length
-                    }{" "}
-                    tareas
-                  </Text>
-                </Row>
+                  <Row justify="space-between" align="middle">
+                    <Text type="secondary">
+                      {
+                        tareas.filter((t) => t.ProyectoID === proy.ProyectoID)
+                          .length
+                      }{" "}
+                      tareas
+                    </Text>
+                  </Row>
 
-                <Avatar.Group
-                  maxCount={4}
-                  size="small"
-                  style={{ marginTop: 12 }}
-                >
-                  {(responsablesPorProyecto[proy.ProyectoID] || []).map((u) => (
-                    <Tooltip key={u.UsuarioID} title={u.NombreCompleto}>
-                      <Avatar icon={!u.avatarUrl && <UserOutlined />} />
-                    </Tooltip>
-                  ))}
-                </Avatar.Group>
-              </div>
-            </Card>
-          </Col>
-        ))}
+                  <Avatar.Group
+                    maxCount={4}
+                    size="small"
+                    style={{ marginTop: 12 }}
+                  >
+                    {(responsablesPorProyecto[proy.ProyectoID] || []).map(
+                      (u) => (
+                        <Tooltip key={u.UsuarioID} title={u.NombreCompleto}>
+                          <Avatar icon={!u.avatarUrl && <UserOutlined />} />
+                        </Tooltip>
+                      )
+                    )}
+                  </Avatar.Group>
+                </div>
+              </Card>
+            </Col>
+          ))}
         </Row>
       </div>
 
@@ -459,11 +440,7 @@ export default function Proyectos() {
               >
                 <Input.TextArea rows={3} />
               </Form.Item>
-              <Form.Item
-                name="area_id"
-                label="Área"
-                rules={[{ required: true }]}
-              >
+              <Form.Item name="area_id" label="Área" rules={[{ required: true }]}>
                 <Select>
                   {areas.map((a) => (
                     <Option key={a.idArea} value={a.idArea}>
@@ -485,11 +462,7 @@ export default function Proyectos() {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item
-                name="rango"
-                label="Fechas"
-                rules={[{ required: true }]}
-              >
+              <Form.Item name="rango" label="Fechas" rules={[{ required: true }]}>
                 <RangePicker />
               </Form.Item>
               <Form.Item label="Imagen del Proyecto (opcional)">
