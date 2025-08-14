@@ -2,43 +2,122 @@
   display: flex;
   gap: 16px;
   overflow-x: auto;
+  overflow-y: hidden;
+  max-height: 85vh;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .kanban-column {
   background: #f9f9f9;
-  border-radius: 6px;
+  border-radius: 8px;
   flex: 1;
-  min-width: 250px;
+  min-width: 300px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .kanban-column-header {
   color: #fff;
-  padding: 8px 12px;
-  font-weight: bold;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  padding: 16px 20px;
+  font-weight: 600;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  text-align: center;
+  font-size: 15px;
+  letter-spacing: 0.5px;
 }
 
 .kanban-tasks {
-  padding: 8px;
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(85vh - 70px);
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f5f5f5;
+}
+
+.kanban-tasks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kanban-tasks::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.kanban-tasks::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.kanban-tasks::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .kanban-card {
   background: #fff;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid #f0f0f0;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.kanban-card-title {
+  font-weight: 600;
+  margin-bottom: 14px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #262626;
+  word-wrap: break-word;
+}
+
+.kanban-card-tags {
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kanban-card-progress {
+  margin: 14px 0;
+}
+
+.kanban-card-users {
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.kanban-card-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .kanban-tag {
   display: inline-block;
   background: #eee;
-  padding: 2px 6px;
-  margin-right: 4px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 12px;
   text-transform: capitalize;
+  white-space: nowrap;
+  font-weight: 500;
 }
 
 /* Comentarios tabs */
@@ -47,22 +126,287 @@
 }
 
 .comentario-tab span {
-  font-size: 11px;
+  font-size: 12px;
   color: #888;
 }
 
 /* Contenido del comentario */
 .comentario-tab-content {
-  padding: 8px 12px;
+  padding: 14px 18px;
   background: #fafafa;
-  border-left: 3px solid #1890ff;
-  border-radius: 6px;
+  border-left: 4px solid #1890ff;
+  border-radius: 8px;
   white-space: pre-line;
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
+  word-break: break-word;
+}
+
+.comentario-render {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.comentario-render img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 10px 0;
 }
 
 /* Botón de comentarios resaltado si hay contenido */
 .kanban-card .ant-btn[title="Comentarios"] {
   color: #1890ff;
+}
+
+.comments-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Escritorio grande */
+@media (min-width: 1400px) {
+  .kanban-board {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .kanban-column {
+    max-width: 420px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) and (max-width: 1399px) {
+  .kanban-board {
+    padding: 16px;
+    gap: 14px;
+  }
+  
+  .kanban-column {
+    min-width: 280px;
+    max-width: 350px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .kanban-board {
+    gap: 12px;
+    padding: 12px;
+    max-height: 80vh;
+  }
+  
+  .kanban-column {
+    min-width: 260px;
+    max-width: 320px;
+  }
+  
+  .kanban-column-header {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .kanban-card {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .kanban-card-title {
+    font-size: 14px;
+  }
+  
+  .kanban-tasks {
+    max-height: calc(80vh - 60px);
+  }
+}
+
+/* Móvil */
+@media (max-width: 768px) {
+  .kanban-board {
+    gap: 10px;
+    padding: 10px 8px;
+    max-height: 75vh;
+  }
+  
+  .kanban-column {
+    min-width: 250px;
+    max-width: 290px;
+    margin-right: 4px;
+  }
+  
+  .kanban-column-header {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .kanban-tasks {
+    padding: 8px;
+    max-height: calc(75vh - 50px);
+  }
+  
+  .kanban-card {
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  
+  .kanban-card-title {
+    font-size: 13px;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  
+  .kanban-card-tags {
+    margin: 10px 0;
+    gap: 4px;
+  }
+  
+  .kanban-card-progress,
+  .kanban-card-users {
+    margin: 10px 0;
+  }
+  
+  .kanban-card-actions {
+    margin-top: 10px;
+  }
+  
+  .kanban-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  
+  /* Modal responsive en móvil */
+  .ant-modal {
+    margin: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    width: calc(100vw - 32px) !important;
+  }
+  
+  .ant-modal-content {
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+  
+  .ant-modal-body {
+    padding: 16px !important;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+  
+  .comentario-tab-content {
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kanban-board {
+    padding: 8px 4px;
+    gap: 8px;
+    max-height: 70vh;
+  }
+  
+  .kanban-column {
+    min-width: 230px;
+    max-width: 270px;
+  }
+  
+  .kanban-column-header {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .kanban-tasks {
+    padding: 6px;
+    max-height: calc(70vh - 45px);
+  }
+  
+  .kanban-card {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  
+  .kanban-card-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  
+  .kanban-card-tags,
+  .kanban-card-progress,
+  .kanban-card-users,
+  .kanban-card-actions {
+    margin: 8px 0;
+  }
+  
+  .kanban-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  
+  .ant-modal {
+    margin: 12px !important;
+    max-width: calc(100vw - 24px) !important;
+    width: calc(100vw - 24px) !important;
+  }
+  
+  .ant-modal-body {
+    padding: 12px !important;
+  }
+  
+  .comentario-tab-content {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Ajustes para ReactQuill en móvil */
+@media (max-width: 768px) {
+  .ql-editor {
+    min-height: 100px !important;
+    font-size: 14px !important;
+    padding: 12px !important;
+  }
+  
+  .ql-toolbar {
+    border-top: 1px solid #ccc;
+    padding: 8px !important;
+  }
+  
+  .ql-toolbar .ql-formats {
+    margin-right: 10px !important;
+  }
+  
+  .ql-toolbar button {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .kanban-board {
+    max-height: 60vh;
+  }
+  
+  .kanban-tasks {
+    max-height: calc(60vh - 50px);
+  }
+}
+
+/* Mejorar visibilidad en pantallas pequeñas */
+@media (max-width: 576px) {
+  .kanban-column {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .kanban-card {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+  
+  .kanban-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+  }
 }

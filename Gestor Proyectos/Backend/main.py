@@ -11,6 +11,8 @@ from api.areas import router as areas_router
 from api.permisosRol_api import router as permisosRol_router
 from api.notificaciones import router as notificaciones_router
 from api.estados import router as estados_router
+from api.permisos import router as permisos_router
+
 from utils.worker_notificaciones import start_worker
 from utils.tareas_automaticas import run
 
@@ -34,6 +36,7 @@ app.include_router(areas_router)
 app.include_router(permisosRol_router)
 app.include_router(notificaciones_router)
 app.include_router(estados_router)
+app.include_router(permisos_router)
 
 #start_worker()
 #run()

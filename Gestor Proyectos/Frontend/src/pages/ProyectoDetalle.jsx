@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
+import './ProyectoDetalle.css';
 import { useQuery, useMutation } from "react-query";
 import {
   Spin,
@@ -18,6 +19,10 @@ import {
   Modal,
   Form,
   message,
+  Row,
+  Col,
+  Drawer,
+  Card,
 } from "antd";
 import dayjs from "dayjs";
 import api from "../services/api";
@@ -30,6 +35,8 @@ import {
   OrderedListOutlined,
   UserOutlined,
   DollarOutlined,
+  MenuOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import { SearchOutlined } from "@ant-design/icons";
@@ -54,8 +61,34 @@ const prioridadMeta = {
   Crítica: "#000",
 };
 
+// Hook personalizado para detectar el tamaño de pantalla
+const useBreakpoint = () => {
+  const [breakpoint, setBreakpoint] = useState('xl');
+
+  React.useEffect(() => {
+    const updateBreakpoint = () => {
+      const width = window.innerWidth;
+      if (width < 576) setBreakpoint('xs');
+      else if (width < 768) setBreakpoint('sm');
+      else if (width < 992) setBreakpoint('md');
+      else if (width < 1200) setBreakpoint('lg');
+      else setBreakpoint('xl');
+    };
+
+    updateBreakpoint();
+    window.addEventListener('resize', updateBreakpoint);
+    return () => window.removeEventListener('resize', updateBreakpoint);
+  }, []);
+
+  return breakpoint;
+};
+
 export default function ProyectoDetalle() {
   const { id } = useParams();
+  const breakpoint = useBreakpoint();
+  const isMobile = ['xs', 'sm'].includes(breakpoint);
+  const isTablet = breakpoint === 'md';
+
   const [filtro, setFiltro] = useState({
     texto: "",
     persona: null,
@@ -71,18 +104,17 @@ export default function ProyectoDetalle() {
   const [filtroVencimiento, setFiltroVencimiento] = useState(null);
   const [seleccionadas, setSeleccionadas] = useState([]);
   const [mensajeRecordatorio, setMensajeRecordatorio] = useState("");
-  const [modalRecordatorioVisible, setModalRecordatorioVisible] =
-    useState(false);
+  const [modalRecordatorioVisible, setModalRecordatorioVisible] = useState(false);
+  const [createTaskDrawerVisible, setCreateTaskDrawerVisible] = useState(false);
+  const [filtersDrawerVisible, setFiltersDrawerVisible] = useState(false);
+
   const userSGP = JSON.parse(localStorage.getItem("userSGP")) || {};
   const idRol = Number(userSGP.idRol || userSGP.RolID);
   const idUsuario = Number(userSGP.idUsuario || userSGP.UsuarioID);
   const [modalComentariosVisible, setModalComentariosVisible] = useState(false);
-  const [comentarioTareaSeleccionada, setComentarioTareaSeleccionada] =
-    useState(null);
+  const [comentarioTareaSeleccionada, setComentarioTareaSeleccionada] = useState(null);
   const [nuevoComentario, setNuevoComentario] = useState("");
-  const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState(
-    []
-  );
+  const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState([]);
   const permisosSGP = JSON.parse(localStorage.getItem("permisosSGP")) || [];
 
   // Verificamos que sea un array antes de usar find
@@ -117,7 +149,6 @@ export default function ProyectoDetalle() {
         .get(`/tareas/por-orden/${id}`)
         .then((r) => r.data.filter((t) => t.ProyectoID === +id))
   );
-  console.log("tareasPorOrden", tareasPorOrden);
 
   const { data: usuarios = [] } = useQuery("usuarios", () =>
     api.get("/usuarios/").then((r) => r.data)
@@ -188,9 +219,9 @@ export default function ProyectoDetalle() {
     onFilter: (value, record) =>
       record[dataIndex]
         ? record[dataIndex]
-            .toString()
-            .toLowerCase()
-            .includes(value.toLowerCase())
+          .toString()
+          .toLowerCase()
+          .includes(value.toLowerCase())
         : "",
     onFilterDropdownVisibleChange: (visible) => {
       if (visible) {
@@ -233,6 +264,7 @@ export default function ProyectoDetalle() {
     onSuccess: () => {
       refetch();
       message.success("Tarea creada");
+      setCreateTaskDrawerVisible(false);
     },
   });
   const editarM = useMutation(
@@ -252,19 +284,19 @@ export default function ProyectoDetalle() {
   });
 
   const tareasFiltradas = useMemo(() => {
-  // Si el usuario es responsable del proyecto
-  if (proyecto?.UsuarioResponsableID === idUsuario) return tareas;
+    // Si el usuario es responsable del proyecto
+    if (proyecto?.UsuarioResponsableID === idUsuario) return tareas;
 
-  // Si su nivel es igual o MÁS jefe que el responsable (nivelJerarquico <= nivelResponsable), ve todo
-  if (nivelJerarquico <= nivelResponsable) return tareas;
+    // Si su nivel es igual o MÁS jefe que el responsable (nivelJerarquico <= nivelResponsable), ve todo
+    if (nivelJerarquico <= nivelResponsable) return tareas;
 
-  // Si no, solo tareas asignadas a él
-  return tareas.filter(
-    (t) =>
-      Array.isArray(t.usuario_asignados) &&
-      t.usuario_asignados.includes(idUsuario)
-  );
-}, [idUsuario, tareas, proyecto, nivelJerarquico, nivelResponsable]);
+    // Si no, solo tareas asignadas a él
+    return tareas.filter(
+      (t) =>
+        Array.isArray(t.usuario_asignados) &&
+        t.usuario_asignados.includes(idUsuario)
+    );
+  }, [idUsuario, tareas, proyecto, nivelJerarquico, nivelResponsable]);
 
   const participantesProyecto = useMemo(
     () =>
@@ -275,12 +307,13 @@ export default function ProyectoDetalle() {
       ),
     [usuarios, tareasFiltradas]
   );
+
   const lookupName = (uid) => {
     const u = usuarios.find((x) => x.UsuarioID === uid);
     return u ? u.NombreCompleto : "";
   };
+
   const usuariosDisponibles = useMemo(() => {
-    // Puedes ajustar esta lógica según cómo tengas tus usuarios cargados
     const ids = [
       ...new Set(seleccionadas.flatMap((t) => t.usuario_asignados || [])),
     ];
@@ -337,12 +370,12 @@ export default function ProyectoDetalle() {
           return true;
       }
     });
-  }; // <- AQUÍ CIERRA BIEN LA FUNCIÓN
+  };
 
-  // ✅ Y aquí ahora sí definimos las variables bien
   const tareasParaGantt = filtroVencimiento
     ? filtrarTareas(filtroVencimiento)
     : tareasFiltradas;
+
   const parseComentarios = (raw) => {
     if (!raw) return [];
 
@@ -410,67 +443,27 @@ export default function ProyectoDetalle() {
     comentarios: t.comentarios || "—",
   }));
 
-  const construirJerarquia = (tareas) => {
-    // Mapa de rutas y niveles desde tareasPorOrden
-    const rutasPorId = {};
-    tareasPorOrden.forEach((t) => {
-      rutasPorId[t.TareaID] = {
-        ruta: t.Ruta,
-        nivel: t.Nivel,
-      };
-    });
-
-    // 1. Crear todas las tareas en el mapa
-    const tareasPorId = {};
-    tareas.forEach((t) => {
-      const rutaInfo = rutasPorId[t.TareaID] || { ruta: t.Titulo, nivel: 0 };
-      tareasPorId[t.TareaID] = {
-        ...t,
-        children: [],
-        nivel: rutaInfo.nivel,
-        ruta: rutaInfo.ruta,
-      };
-    });
-
-    // 2. Asignar hijos a sus padres
-    const jerarquicas = [];
-    tareas.forEach((t) => {
-      if (t.IDTareaPadre && tareasPorId[t.IDTareaPadre]) {
-        tareasPorId[t.IDTareaPadre].children.push(tareasPorId[t.TareaID]);
-      } else if (!t.IDTareaPadre) {
-        jerarquicas.push(tareasPorId[t.TareaID]);
-      }
-    });
-
-    return jerarquicas;
-  };
   const construirJerarquiaPorRuta = (tareas) => {
-    // Mapa de todas las tareas por ID
     const tareasPorId = {};
     tareas.forEach((t) => {
       tareasPorId[t.TareaID] = { ...t, children: [] };
     });
 
-    // Lista de raíces
     const raices = [];
 
     tareas.forEach((t) => {
       if (!t.Ruta) {
-        // Si no hay ruta, lo tratamos como raíz
         raices.push(tareasPorId[t.TareaID]);
         return;
       }
       const partesRuta = String(t.Ruta).split(">");
       if (partesRuta.length === 1) {
-        // Es raíz
         raices.push(tareasPorId[t.TareaID]);
       } else {
-        // El padre es el penúltimo ID de la ruta
         const idPadre = parseInt(partesRuta[partesRuta.length - 2], 10);
         if (tareasPorId[idPadre]) {
           tareasPorId[idPadre].children.push(tareasPorId[t.TareaID]);
         } else {
-          // Si no se encuentra el padre, lo tratamos como raíz por seguridad
           raices.push(tareasPorId[t.TareaID]);
         }
       }
@@ -479,254 +472,193 @@ export default function ProyectoDetalle() {
     return raices;
   };
 
-  const handleCreate = () => {
-    const d = nueva.__new || {};
-    if (!d.Titulo || !d.FechaInicio || !d.FechaLimite) {
+  const handleCreate = (values) => {
+    if (!values.Titulo || !values.FechaInicio || !values.FechaLimite) {
       return message.error("Título, Inicio y Fin son obligatorios");
     }
     crearM.mutate({
       proyecto_id: +id,
-      titulo: d.Titulo,
-      descripcion: "",
-      estado: filtro.estado || "pendiente",
-      usuario_asignados: d.usuario_asignados || [],
-      fecha_inicio: d.FechaInicio.format("YYYY-MM-DD"),
-      fecha_limite: d.FechaLimite.format("YYYY-MM-DD"),
-      porcentaje_avance: 0,
-      prioridad: { Baja: 1, Media: 2, Alta: 3, Crítica: 4 }[d.prioridad] || 2,
+      titulo: values.Titulo,
+      descripcion: values.Descripcion || "",
+      estado: values.Estado || "pendiente",
+      usuario_asignados: values.usuario_asignados || [],
+      fecha_inicio: values.FechaInicio.format("YYYY-MM-DD"),
+      fecha_limite: values.FechaLimite.format("YYYY-MM-DD"),
+      porcentaje_avance: values.PorcentajeAvance || 0,
+      prioridad: { Baja: 1, Media: 2, Alta: 3, Crítica: 4 }[values.prioridad] || 2,
       comentarios: null,
     });
     setNueva({});
   };
 
-  const columns = [
-    {
-      title: "Tarea",
-      dataIndex: "Titulo",
-      ...getColumnSearchProps("Titulo"),
-      width: 300,
-      render: (text, record) => {
-        const id = record.TareaID;
-        const nivel = record.nivel || 0;
-        const indentacion = nivel * 24; // 24px por nivel
+  // Configuración de columnas responsive
+  const getResponsiveColumns = () => {
+    const baseColumns = [
+      {
+        title: "Tarea",
+        dataIndex: "Titulo",
+        ...(!isMobile ? getColumnSearchProps("Titulo") : {}),
+        width: isMobile ? 200 : 300,
+        fixed: isMobile ? 'left' : false,
+        render: (text, record) => {
+          const id = record.TareaID;
+          const nivel = record.nivel || 0;
+          const indentacion = isMobile ? nivel * 12 : nivel * 24;
 
-        return (
-          <Tooltip title={`${id} - ${record.Titulo}`}>
-            <div
-              style={{
-                paddingLeft: `${indentacion}px`,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {record.TareaID} - {record.Titulo}
-            </div>
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: "Responsables",
-      dataIndex: "usuario_asignados",
-      filters: participantesProyecto.map((u) => ({
-        text: u.NombreCompleto,
-        value: u.UsuarioID,
-      })),
-      onFilter: (value, record) =>
-        (record.usuario_asignados || []).includes(value),
-      width: 135,
-      render: (arr) => (
-        <Space>
-          {(arr || []).map((uid) => (
-            <Tooltip key={uid} title={lookupName(uid)}>
-              <Avatar size="small">
-                {lookupName(uid)
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </Avatar>
+          return (
+            <Tooltip title={`${id} - ${record.Titulo}`}>
+              <div
+                style={{
+                  paddingLeft: `${indentacion}px`,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontSize: isMobile ? '12px' : '14px',
+                }}
+              >
+                {isMobile ? record.Titulo : `${record.TareaID} - ${record.Titulo}`}
+              </div>
             </Tooltip>
-          ))}
-          {!(arr || []).length && <Text type="secondary">Sin asignar</Text>}
-        </Space>
-      ),
-    },
-    {
-      title: "Estado",
-      dataIndex: "Estado",
-      filters: ordenEstados.map((e) => ({
-        text: estadosMeta[e].label,
-        value: e,
-      })),
-      onFilter: (val, row) => row.Estado === val,
-      width: 100,
-      render: (e) => (
-        <Tag color={estadosMeta[e].color}>{estadosMeta[e].label}</Tag>
-      ),
-    },
-    {
-      title: "Antecesora",
-      dataIndex: "antecesora",
-      ...getColumnSearchProps("antecesora"),
-      width: 120,
-      render: (id) => {
-        const antecesora = tareas.find((t) => t.TareaID === id);
-        return antecesora ? antecesora.Titulo : "Sin antecesora";
+          );
+        },
       },
-    },
-    {
-      title: "Inicio",
-      dataIndex: "FechaInicio",
-      width: 120,
-      render: (f) => dayjs(f).format("YYYY-MM-DD"),
-      filterDropdown: ({
-        setSelectedKeys,
-        selectedKeys,
-        confirm,
-        clearFilters,
-      }) => (
-        <div style={{ padding: 8 }}>
-          <DatePicker
-            value={selectedKeys[0] ? dayjs(selectedKeys[0]) : null}
-            onChange={(date) =>
-              setSelectedKeys(date ? [date.format("YYYY-MM-DD")] : [])
-            }
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Space>
-            <Button
-              type="primary"
-              onClick={() => confirm()}
-              size="small"
-              style={{ width: 90 }}
-            >
-              Buscar
-            </Button>
-            <Button
-              onClick={() => {
-                clearFilters();
-                confirm({ closeDropdown: true });
-              }}
-              size="small"
-              style={{ width: 90 }}
-            >
-              Limpiar
-            </Button>
+      {
+        title: "Responsables",
+        dataIndex: "usuario_asignados",
+        filters: !isMobile ? participantesProyecto.map((u) => ({
+          text: u.NombreCompleto,
+          value: u.UsuarioID,
+        })) : [],
+        onFilter: !isMobile ? (value, record) =>
+          (record.usuario_asignados || []).includes(value) : undefined,
+        width: isMobile ? 100 : 135,
+        render: (arr) => (
+          <Space size={2} wrap>
+            {(arr || []).slice(0, isMobile ? 1 : 3).map((uid) => (
+              <Tooltip key={uid} title={lookupName(uid)}>
+                <Avatar size={isMobile ? 20 : 24}>
+                  {lookupName(uid)
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </Avatar>
+              </Tooltip>
+            ))}
+            {(arr || []).length > (isMobile ? 1 : 3) && (
+              <Avatar size={isMobile ? 20 : 24}>
+                +{(arr || []).length - (isMobile ? 1 : 3)}
+              </Avatar>
+            )}
+            {!(arr || []).length && <Text type="secondary" style={{ fontSize: isMobile ? '10px' : '12px' }}>N/A</Text>}
           </Space>
-        </div>
-      ),
-      filterIcon: (filtered) => (
-        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
-      ),
-      onFilter: (value, record) => record.FechaInicio?.startsWith(value),
-    },
-    {
-      title: "Vencimiento",
-      dataIndex: "FechaLimite",
-      width: 130,
-      render: (f) => dayjs(f).format("YYYY-MM-DD"),
-      filterDropdown: ({
-        setSelectedKeys,
-        selectedKeys,
-        confirm,
-        clearFilters,
-      }) => (
-        <div style={{ padding: 8 }}>
-          <DatePicker
-            value={selectedKeys[0] ? dayjs(selectedKeys[0]) : null}
-            onChange={(date) =>
-              setSelectedKeys(date ? [date.format("YYYY-MM-DD")] : [])
-            }
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Space>
+        ),
+      },
+      {
+        title: "Estado",
+        dataIndex: "Estado",
+        filters: !isMobile ? ordenEstados.map((e) => ({
+          text: estadosMeta[e].label,
+          value: e,
+        })) : [],
+        onFilter: !isMobile ? (val, row) => row.Estado === val : undefined,
+        width: isMobile ? 80 : 100,
+        render: (e) => (
+          <Tag color={estadosMeta[e].color} style={{ fontSize: isMobile ? '10px' : '12px' }}>
+            {isMobile ? estadosMeta[e].label.substring(0, 3) : estadosMeta[e].label}
+          </Tag>
+        ),
+      }
+    ];
+
+    if (!isMobile) {
+      baseColumns.push(
+        {
+          title: "Antecesora",
+          dataIndex: "antecesora",
+          ...getColumnSearchProps("antecesora"),
+          width: 120,
+          render: (id) => {
+            const antecesora = tareas.find((t) => t.TareaID === id);
+            return antecesora ? antecesora.Titulo : "Sin antecesora";
+          },
+        },
+        {
+          title: "Inicio",
+          dataIndex: "FechaInicio",
+          width: isTablet ? 100 : 120,
+          render: (f) => dayjs(f).format(isMobile ? "DD/MM" : "YYYY-MM-DD"),
+        },
+        {
+          title: "Vencimiento",
+          dataIndex: "FechaLimite",
+          width: isTablet ? 100 : 130,
+          render: (f) => dayjs(f).format(isMobile ? "DD/MM" : "YYYY-MM-DD"),
+        },
+        {
+          title: "Prioridad",
+          dataIndex: "prioridad",
+          filters: Object.keys(prioridadMeta).map((p) => ({ text: p, value: p })),
+          onFilter: (value, record) => record.prioridad === value,
+          width: 120,
+          render: (p) => <Tag color={prioridadMeta[p]}>{p}</Tag>,
+        },
+        {
+          title: "Comentarios",
+          dataIndex: "comentarios",
+          width: 120,
+          render: (text, record) => (
             <Button
-              type="primary"
-              onClick={() => confirm()}
+              type="link"
               size="small"
-              style={{ width: 90 }}
-            >
-              Buscar
-            </Button>
-            <Button
               onClick={() => {
-                clearFilters();
-                confirm({ closeDropdown: true });
+                setComentarioTareaSeleccionada(record);
+                setModalComentariosVisible(true);
               }}
-              size="small"
-              style={{ width: 90 }}
             >
-              Limpiar
+              Ver ({parseComentarios(text).length})
             </Button>
-          </Space>
-        </div>
-      ),
-      filterIcon: (filtered) => (
-        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
-      ),
-      onFilter: (value, record) => record.FechaLimite?.startsWith(value),
-    },
-    {
-      title: "Prioridad",
-      dataIndex: "prioridad",
-      filters: Object.keys(prioridadMeta).map((p) => ({ text: p, value: p })),
-      onFilter: (value, record) => record.prioridad === value,
-      width: 120,
-      render: (p) => <Tag color={prioridadMeta[p]}>{p}</Tag>,
-    },
-    {
-      title: "Comentarios",
-      dataIndex: "comentarios",
-      ...getColumnSearchProps("comentarios"),
-      width: 200,
-      render: (text, record) => (
-        <Button
-          type="link"
-          onClick={() => {
-            setComentarioTareaSeleccionada(record);
-            setModalComentariosVisible(true);
-          }}
-        >
-          Ver ({parseComentarios(text).length})
-        </Button>
-      ),
-    },
-    ,
-    {
+          ),
+        }
+      );
+    }
+
+    // Columna de acciones
+    baseColumns.push({
       title: "Acciones",
       key: "acciones",
-      width: 120,
+      width: isMobile ? 80 : 120,
+      fixed: isMobile ? 'right' : false,
       render: (_, rec) => (
-        <div style={{ marginRight: 12 }}>
-          <Space>
-            <Button
-              size="small"
-              onClick={() => {
-                setEditingTask(rec);
-                editForm.setFieldsValue({
-                  Titulo: rec.Titulo,
-                  Estado: rec.Estado,
-                  PorcentajeAvance: rec.PorcentajeAvance,
-                  prioridad: rec.prioridad,
-                  FechaInicio: dayjs(rec.FechaInicio),
-                  FechaLimite: dayjs(rec.FechaLimite),
-                  usuario_asignados: rec.usuario_asignados,
-                  comentarios: parseComentarios(rec.comentarios)
-                    .map(
-                      (c) =>
-                        `${c.nombre} (${dayjs(c.fecha).format(
-                          "YYYY-MM-DD HH:mm"
-                        )}): ${c.texto}`
-                    )
-                    .join("\n"),
-                  antecesora: rec.antecesora || null,
-                });
-                setEditModalVisible(true);
-              }}
-            >
-              Editar
-            </Button>
+        <Space size={4} direction={isMobile ? "vertical" : "horizontal"}>
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => {
+              setEditingTask(rec);
+              editForm.setFieldsValue({
+                Titulo: rec.Titulo,
+                Estado: rec.Estado,
+                PorcentajeAvance: rec.PorcentajeAvance,
+                prioridad: rec.prioridad,
+                FechaInicio: dayjs(rec.FechaInicio),
+                FechaLimite: dayjs(rec.FechaLimite),
+                usuario_asignados: rec.usuario_asignados,
+                comentarios: parseComentarios(rec.comentarios)
+                  .map(
+                    (c) =>
+                      `${c.nombre} (${dayjs(c.fecha).format(
+                        "YYYY-MM-DD HH:mm"
+                      )}): ${c.texto}`
+                  )
+                  .join("\n"),
+                antecesora: rec.antecesora || null,
+              });
+              setEditModalVisible(true);
+            }}
+          >
+            {isMobile ? "Ed" : "Editar"}
+          </Button>
+          {!isMobile && (
             <Button
               danger
               size="small"
@@ -734,25 +666,441 @@ export default function ProyectoDetalle() {
             >
               Eliminar
             </Button>
-          </Space>
-        </div>
+          )}
+        </Space>
       ),
-    },
-  ];
+    });
+
+    return baseColumns;
+  };
+
+  const renderMobileCreateForm = () => (
+    <Modal
+      title="Crear Nueva Tarea"
+      open={createTaskDrawerVisible}
+      onCancel={() => setCreateTaskDrawerVisible(false)}
+      width={isMobile ? '90%' : 600}
+      style={{
+        top: isMobile ? 20 : 50,
+        maxHeight: '85vh'
+      }}
+      bodyStyle={{
+        maxHeight: '70vh',
+        overflowY: 'auto',
+        padding: isMobile ? '12px' : '24px'
+      }}
+      footer={
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: isMobile ? '8px 0' : '10px 0'
+        }}>
+          <Button onClick={() => setCreateTaskDrawerVisible(false)}>
+            Cancelar
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => {
+              const values = nueva.__new;
+              handleCreate(values);
+            }}
+          >
+            Guardar
+          </Button>
+        </div>
+      }
+    >
+      <Form layout="vertical" size={isMobile ? "small" : "default"}>
+        <Row gutter={isMobile ? 8 : 16}>
+          <Col span={24}>
+            <Form.Item
+              label="Título"
+              required
+              style={{ marginBottom: isMobile ? 8 : 16 }}
+            >
+              <Input
+                size={isMobile ? "small" : "default"}
+                placeholder="Título de la tarea"
+                value={nueva.__new?.Titulo}
+                onChange={(e) =>
+                  setNueva((n) => ({
+                    ...n,
+                    __new: { ...n.__new, Titulo: e.target.value },
+                  }))
+                }
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={isMobile ? 8 : 16}>
+          <Col xs={12}>
+            <Form.Item
+              label="Inicio"
+              required
+              style={{ marginBottom: isMobile ? 8 : 16 }}
+            >
+              <DatePicker
+                size={isMobile ? "small" : "default"}
+                style={{ width: '100%' }}
+                placeholder="Inicio"
+                value={nueva.__new?.FechaInicio}
+                onChange={(d) =>
+                  setNueva((n) => ({
+                    ...n,
+                    __new: { ...n.__new, FechaInicio: d },
+                  }))
+                }
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={12}>
+            <Form.Item
+              label="Límite"
+              required
+              style={{ marginBottom: isMobile ? 8 : 16 }}
+            >
+              <DatePicker
+                size={isMobile ? "small" : "default"}
+                style={{ width: '100%' }}
+                placeholder="Límite"
+                value={nueva.__new?.FechaLimite}
+                onChange={(d) =>
+                  setNueva((n) => ({
+                    ...n,
+                    __new: { ...n.__new, FechaLimite: d },
+                  }))
+                }
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={isMobile ? 8 : 16}>
+          <Col xs={12}>
+            <Form.Item
+              label="Prioridad"
+              style={{ marginBottom: isMobile ? 8 : 16 }}
+            >
+              <Select
+                size={isMobile ? "small" : "default"}
+                placeholder="Prioridad"
+                style={{ width: '100%' }}
+                value={nueva.__new?.prioridad}
+                onChange={(v) =>
+                  setNueva((n) => ({
+                    ...n,
+                    __new: { ...n.__new, prioridad: v },
+                  }))
+                }
+              >
+                {Object.keys(prioridadMeta).map((p) => (
+                  <Option key={p} value={p}>{p}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={12}>
+            <Form.Item
+              label="Estado"
+              style={{ marginBottom: isMobile ? 8 : 16 }}
+            >
+              <Select
+                size={isMobile ? "small" : "default"}
+                placeholder="Estado"
+                style={{ width: '100%' }}
+                value={nueva.__new?.Estado}
+                onChange={(v) =>
+                  setNueva((n) => ({
+                    ...n,
+                    __new: { ...n.__new, Estado: v },
+                  }))
+                }
+              >
+                {ordenEstados.map((e) => (
+                  <Option key={e} value={e}>
+                    {estadosMeta[e].label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item
+          label="Responsables"
+          style={{ marginBottom: isMobile ? 8 : 16 }}
+        >
+          <Select
+            size={isMobile ? "small" : "default"}
+            mode="multiple"
+            placeholder="Seleccionar responsables"
+            style={{ width: '100%' }}
+            value={nueva.__new?.usuario_asignados}
+            onChange={(arr) =>
+              setNueva((n) => ({
+                ...n,
+                __new: { ...n.__new, usuario_asignados: arr },
+              }))
+            }
+            maxTagCount={isMobile ? 1 : 3}
+            maxTagPlaceholder={(omittedValues) => `+${omittedValues.length}`}
+          >
+            {usuarios.map((u) => (
+              <Option key={u.UsuarioID} value={u.UsuarioID}>
+                {u.NombreCompleto}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Descripción"
+          style={{ marginBottom: 0 }}
+        >
+          <Input.TextArea
+            size={isMobile ? "small" : "default"}
+            rows={isMobile ? 2 : 3}
+            placeholder="Descripción opcional"
+            value={nueva.__new?.Descripcion}
+            onChange={(e) =>
+              setNueva((n) => ({
+                ...n,
+                __new: { ...n.__new, Descripcion: e.target.value },
+              }))
+            }
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+
+  const renderMobileFilters = () => (
+    <Drawer
+      title="Filtros"
+      placement="right"
+      width="85%"
+      open={filtersDrawerVisible}
+      onClose={() => setFiltersDrawerVisible(false)}
+    >
+      <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <div>
+          <Text strong>Buscar por texto:</Text>
+          <Input
+            placeholder="Buscar tareas..."
+            value={filtro.texto}
+            onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+
+        <div>
+          <Text strong>Filtrar por persona:</Text>
+          <Select
+            placeholder="Seleccionar persona"
+            style={{ width: '100%', marginTop: 8 }}
+            value={filtro.persona}
+            onChange={(v) => setFiltro({ ...filtro, persona: v })}
+            allowClear
+          >
+            {participantesProyecto.map((u) => (
+              <Option key={u.UsuarioID} value={u.UsuarioID}>
+                {u.NombreCompleto}
+              </Option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
+          <Text strong>Filtrar por estado:</Text>
+          <Select
+            placeholder="Seleccionar estado"
+            style={{ width: '100%', marginTop: 8 }}
+            value={filtro.estado}
+            onChange={(v) => setFiltro({ ...filtro, estado: v })}
+            allowClear
+          >
+            {ordenEstados.map((e) => (
+              <Option key={e} value={e}>
+                {estadosMeta[e].label}
+              </Option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
+          <Text strong>Filtrar por vencimiento:</Text>
+          <Select
+            placeholder="Filtrar por vencimiento"
+            style={{ width: '100%', marginTop: 8 }}
+            value={filtroVencimiento}
+            onChange={(val) => setFiltroVencimiento(val)}
+            allowClear
+          >
+            <Select.Option value="vencidas">Vencidas</Select.Option>
+            <Select.Option value="hoy">Se vencen hoy</Select.Option>
+            <Select.Option value="semana">Esta semana</Select.Option>
+            <Select.Option value="proxima">Próxima semana</Select.Option>
+            <Select.Option value="mes">Este mes</Select.Option>
+          </Select>
+        </div>
+      </Space>
+    </Drawer>
+  );
+
+  const renderMobileStats = () => {
+    const stats = ordenEstados.map(estado => {
+      const count = datosFiltrados.filter(t => t.Estado === estado).length;
+      return { estado, count, color: estadosMeta[estado].color, label: estadosMeta[estado].label };
+    }).filter(s => s.count > 0);
+
+    return (
+      <Row gutter={8} style={{ marginBottom: 16 }}>
+        {stats.map((stat) => (
+          <Col xs={6} sm={4} md={3} key={stat.estado}>
+            <Card
+              size="small"
+              style={{
+                textAlign: 'center',
+                borderColor: stat.color,
+                borderWidth: 2
+              }}
+            >
+              <Text strong style={{ color: stat.color, fontSize: '12px' }}>
+                {stat.label.substring(0, 4)}
+              </Text>
+              <br />
+              <Text style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                {stat.count}
+              </Text>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    );
+  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={2}>{proyecto.NombreProyecto}</Title>
+    <div
+      className="proyecto-detalle-container"
+      style={{
+        padding: isMobile ? '8px' : '16px',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        overflowY: 'auto'
+      }}
+    >
+      {/* Header responsive */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        <Col xs={16} sm={18} md={20}>
+          <Title
+            level={isMobile ? 3 : 2}
+            style={{
+              margin: 0,
+              fontSize: isMobile ? '18px' : undefined,
+              lineHeight: isMobile ? '24px' : undefined
+            }}
+          >
+            {isMobile
+              ? (proyecto.NombreProyecto.length > 20
+                ? `${proyecto.NombreProyecto.substring(0, 20)}...`
+                : proyecto.NombreProyecto)
+              : proyecto.NombreProyecto
+            }
+          </Title>
+        </Col>
+        <Col xs={8} sm={6} md={4}>
+          <Space>
+            {isMobile && (
+              <>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateTaskDrawerVisible(true)}
+                  size="small"
+                />
+                <Button
+                  icon={<MenuOutlined />}
+                  onClick={() => setFiltersDrawerVisible(true)}
+                  size="small"
+                />
+              </>
+            )}
+          </Space>
+        </Col>
+      </Row>
 
-      <Tabs defaultActiveKey="1" type="card" tabBarGutter={20}>
+      {/* Estadísticas móviles */}
+      {isMobile && renderMobileStats()}
+
+      <Tabs
+        defaultActiveKey="1"
+        type="card"
+        tabBarGutter={isMobile ? 8 : 20}
+        size={isMobile ? "small" : "default"}
+        tabPosition={isMobile ? "top" : "top"}
+      >
         <Tabs.TabPane
           tab={
             <span>
-              <TableOutlined /> Tabla
+              <TableOutlined /> {isMobile ? "" : "Tabla"}
             </span>
           }
           key="1"
         >
+          {!isMobile && (
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col xs={24} sm={8} md={6}>
+                <Input
+                  placeholder="Buscar tareas..."
+                  value={filtro.texto}
+                  onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })}
+                  prefix={<SearchOutlined />}
+                />
+              </Col>
+              <Col xs={24} sm={8} md={6}>
+                <Select
+                  placeholder="Filtrar por persona"
+                  style={{ width: '100%' }}
+                  value={filtro.persona}
+                  onChange={(v) => setFiltro({ ...filtro, persona: v })}
+                  allowClear
+                >
+                  {participantesProyecto.map((u) => (
+                    <Option key={u.UsuarioID} value={u.UsuarioID}>
+                      {u.NombreCompleto}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={8} md={6}>
+                <Select
+                  placeholder="Filtrar por estado"
+                  style={{ width: '100%' }}
+                  value={filtro.estado}
+                  onChange={(v) => setFiltro({ ...filtro, estado: v })}
+                  allowClear
+                >
+                  {ordenEstados.map((e) => (
+                    <Option key={e} value={e}>
+                      {estadosMeta[e].label}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={24} md={6}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateTaskDrawerVisible(true)}
+                  style={{ width: '100%' }}
+                >
+                  Nueva Tarea
+                </Button>
+              </Col>
+            </Row>
+          )}
+
           <Collapse accordion>
             {ordenEstados.map((est) => {
               const grupo = datosFiltrados.filter((t) => t.Estado === est);
@@ -770,24 +1118,33 @@ export default function ProyectoDetalle() {
                     <Button
                       type="primary"
                       danger
+                      size={isMobile ? "small" : "default"}
                       style={{ marginBottom: 12 }}
                       onClick={() => setModalRecordatorioVisible(true)}
                     >
-                      Enviar recordatorio ({seleccionadas.length} tareas)
+                      Enviar recordatorio ({seleccionadas.length})
                     </Button>
                   )}
 
                   <Table
                     dataSource={construirJerarquiaPorRuta(grupo)}
-                    columns={columns}
+                    columns={getResponsiveColumns()}
                     expandable={{
-                      defaultExpandAllRows: true,
+                      defaultExpandAllRows: !isMobile,
                       childrenColumnName: "children",
                     }}
                     rowKey="TareaID"
-                    pagination={true}
-                    defaultExpandAllRows={true}
-                    scroll={{ x: 1200, y: 400 }}
+                    pagination={{
+                      pageSize: isMobile ? 5 : 10,
+                      showTotal: !isMobile ? (total, range) =>
+                        `${range[0]}-${range[1]} de ${total} tareas` : undefined,
+                      size: isMobile ? "small" : "default"
+                    }}
+                    scroll={{
+                      x: isMobile ? 400 : 1500,
+                      y: isMobile ? 300 : 400
+                    }}
+                    size={isMobile ? "small" : "default"}
                     rowSelection={{
                       selectedRowKeys: seleccionadas.map((t) => t.TareaID),
                       onSelect: (record, selected) => {
@@ -812,14 +1169,12 @@ export default function ProyectoDetalle() {
                         );
 
                         if (allAlreadySelected) {
-                          // Deselect all
                           setSeleccionadas(
                             seleccionadas.filter(
                               (t) => !allSelectedIds.includes(t.TareaID)
                             )
                           );
                         } else {
-                          // Select all (sin duplicar)
                           const nuevos = tareasFiltradas.filter(
                             (t) =>
                               !seleccionadas.some(
@@ -831,162 +1186,104 @@ export default function ProyectoDetalle() {
                       },
                     }}
                   />
-                  <Space style={{ marginTop: 16 }} wrap>
-                    <Input
-                      placeholder="Título"
-                      style={{ width: 160 }}
-                      value={nueva.__new?.Titulo}
-                      onChange={(e) =>
-                        setNueva((n) => ({
-                          ...n,
-                          __new: { ...n.__new, Titulo: e.target.value },
-                        }))
-                      }
-                    />
-                    <DatePicker
-                      placeholder="Inicio"
-                      value={nueva.__new?.FechaInicio}
-                      onChange={(d) =>
-                        setNueva((n) => ({
-                          ...n,
-                          __new: { ...n.__new, FechaInicio: d },
-                        }))
-                      }
-                    />
-                    <DatePicker
-                      placeholder="Fin"
-                      value={nueva.__new?.FechaLimite}
-                      onChange={(d) =>
-                        setNueva((n) => ({
-                          ...n,
-                          __new: { ...n.__new, FechaLimite: d },
-                        }))
-                      }
-                    />
-                    <Select
-                      placeholder="Prioridad"
-                      style={{ width: 100 }}
-                      value={nueva.__new?.prioridad}
-                      onChange={(v) =>
-                        setNueva((n) => ({
-                          ...n,
-                          __new: { ...n.__new, prioridad: v },
-                        }))
-                      }
-                    >
-                      {Object.keys(prioridadMeta).map((p) => (
-                        <Option key={p} value={p}>
-                          {p}
-                        </Option>
-                      ))}
-                    </Select>
-                    <Select
-                      mode="multiple"
-                      placeholder="Responsables"
-                      style={{ width: 180 }}
-                      value={nueva.__new?.usuario_asignados}
-                      onChange={(arr) =>
-                        setNueva((n) => ({
-                          ...n,
-                          __new: { ...n.__new, usuario_asignados: arr },
-                        }))
-                      }
-                    >
-                      {usuarios.map((u) => (
-                        <Option key={u.UsuarioID} value={u.UsuarioID}>
-                          {u.NombreCompleto}
-                        </Option>
-                      ))}
-                    </Select>
-                    <Button type="primary" onClick={handleCreate}>
-                      Guardar
-                    </Button>
-                  </Space>
+
+                  {/* Formulario de creación para desktop */}
+                  {!isMobile && (
+                    <Space style={{ marginTop: 16 }} wrap>
+                      <Input
+                        placeholder="Título"
+                        style={{ width: 160 }}
+                        value={nueva.__new?.Titulo}
+                        onChange={(e) =>
+                          setNueva((n) => ({
+                            ...n,
+                            __new: { ...n.__new, Titulo: e.target.value },
+                          }))
+                        }
+                      />
+                      <DatePicker
+                        placeholder="Inicio"
+                        value={nueva.__new?.FechaInicio}
+                        onChange={(d) =>
+                          setNueva((n) => ({
+                            ...n,
+                            __new: { ...n.__new, FechaInicio: d },
+                          }))
+                        }
+                      />
+                      <DatePicker
+                        placeholder="Fin"
+                        value={nueva.__new?.FechaLimite}
+                        onChange={(d) =>
+                          setNueva((n) => ({
+                            ...n,
+                            __new: { ...n.__new, FechaLimite: d },
+                          }))
+                        }
+                      />
+                      <Select
+                        placeholder="Prioridad"
+                        style={{ width: 100 }}
+                        value={nueva.__new?.prioridad}
+                        onChange={(v) =>
+                          setNueva((n) => ({
+                            ...n,
+                            __new: { ...n.__new, prioridad: v },
+                          }))
+                        }
+                      >
+                        {Object.keys(prioridadMeta).map((p) => (
+                          <Option key={p} value={p}>
+                            {p}
+                          </Option>
+                        ))}
+                      </Select>
+                      <Select
+                        mode="multiple"
+                        placeholder="Responsables"
+                        style={{ width: 180 }}
+                        value={nueva.__new?.usuario_asignados}
+                        onChange={(arr) =>
+                          setNueva((n) => ({
+                            ...n,
+                            __new: { ...n.__new, usuario_asignados: arr },
+                          }))
+                        }
+                      >
+                        {usuarios.map((u) => (
+                          <Option key={u.UsuarioID} value={u.UsuarioID}>
+                            {u.NombreCompleto}
+                          </Option>
+                        ))}
+                      </Select>
+                      <Button
+                        type="primary"
+                        onClick={() => handleCreate(nueva.__new || {})}
+                      >
+                        Guardar
+                      </Button>
+                    </Space>
+                  )}
                 </Panel>
               );
             })}
           </Collapse>
-          <Space style={{ marginTop: 16 }} wrap>
-            <Input
-              placeholder="Título"
-              style={{ width: 160 }}
-              value={nueva.__new?.Titulo}
-              onChange={(e) =>
-                setNueva((n) => ({
-                  ...n,
-                  __new: { ...n.__new, Titulo: e.target.value },
-                }))
-              }
-            />
-            <DatePicker
-              placeholder="Inicio"
-              value={nueva.__new?.FechaInicio}
-              onChange={(d) =>
-                setNueva((n) => ({
-                  ...n,
-                  __new: { ...n.__new, FechaInicio: d },
-                }))
-              }
-            />
-            <DatePicker
-              placeholder="Fin"
-              value={nueva.__new?.FechaLimite}
-              onChange={(d) =>
-                setNueva((n) => ({
-                  ...n,
-                  __new: { ...n.__new, FechaLimite: d },
-                }))
-              }
-            />
-            <Select
-              placeholder="Prioridad"
-              style={{ width: 100 }}
-              value={nueva.__new?.prioridad}
-              onChange={(v) =>
-                setNueva((n) => ({ ...n, __new: { ...n.__new, prioridad: v } }))
-              }
-            >
-              {Object.keys(prioridadMeta).map((p) => (
-                <Option key={p} value={p}>
-                  {p}
-                </Option>
-              ))}
-            </Select>
-            <Select
-              mode="multiple"
-              placeholder="Responsables"
-              style={{ width: 180 }}
-              value={nueva.__new?.usuario_asignados}
-              onChange={(arr) =>
-                setNueva((n) => ({
-                  ...n,
-                  __new: { ...n.__new, usuario_asignados: arr },
-                }))
-              }
-            >
-              {usuarios.map((u) => (
-                <Option key={u.UsuarioID} value={u.UsuarioID}>
-                  {u.NombreCompleto}
-                </Option>
-              ))}
-            </Select>
-            <Button type="primary" onClick={handleCreate}>
-              Guardar
-            </Button>
-          </Space>
         </Tabs.TabPane>
 
         <Tabs.TabPane
           tab={
             <span>
-              <ProjectOutlined /> Gantt
+              <ProjectOutlined /> {isMobile ? "" : "Gantt"}
             </span>
           }
           key="2"
         >
           <Select
             placeholder="Filtrar por vencimiento"
-            style={{ width: 240, marginBottom: 12 }}
+            style={{
+              width: isMobile ? '100%' : 240,
+              marginBottom: 12
+            }}
             onChange={(val) => setFiltroVencimiento(val)}
             allowClear
           >
@@ -996,40 +1293,48 @@ export default function ProyectoDetalle() {
             <Select.Option value="proxima">Próxima semana</Select.Option>
             <Select.Option value="mes">Este mes</Select.Option>
           </Select>
-          <GanttView tasks={ganttTasks} viewMode={ViewMode.Day} />
+          <div style={{ overflowX: 'auto' }}>
+            <GanttView
+              tasks={ganttTasks}
+              viewMode={isMobile ? ViewMode.Week : ViewMode.Day}
+            />
+          </div>
         </Tabs.TabPane>
 
         <Tabs.TabPane
-          tab={
-            <span>
-              <BarChartOutlined /> Gráfico
-            </span>
-          }
+          tab={<span><BarChartOutlined /> {isMobile ? "" : "Gráfico"}</span>}
           key="3"
         >
-          <ChartView tasks={tareasFiltradas} usuarios={usuarios} />
+          <div className="chart-pane" style={{ overflowX: "auto" }}>
+            <ChartView tasks={tareasFiltradas} usuarios={usuarios} />
+          </div>
         </Tabs.TabPane>
+
 
         <Tabs.TabPane
           tab={
             <span>
-              <CalendarOutlined /> Calendario
+              <CalendarOutlined /> {isMobile ? "" : "Calendario"}
             </span>
           }
           key="4"
         >
-          <CalendarView events={events} />
+          <div style={{ overflowX: 'auto' }}>
+            <CalendarView events={events} />
+          </div>
         </Tabs.TabPane>
 
         <Tabs.TabPane
           tab={
             <span>
-              <OrderedListOutlined /> Kanban
+              <OrderedListOutlined /> {isMobile ? "" : "Kanban"}
             </span>
           }
           key="5"
         >
-          <KanbanView tasks={tareasFiltradas} usuarios={usuarios} />
+          <div style={{ overflowX: 'auto' }}>
+            <KanbanView tasks={tareasFiltradas} usuarios={usuarios} />
+          </div>
         </Tabs.TabPane>
 
         {[1, 2, 3].includes(idRol) && (
@@ -1037,38 +1342,56 @@ export default function ProyectoDetalle() {
             <Tabs.TabPane
               tab={
                 <span>
-                  <UserOutlined /> Recursos
+                  <UserOutlined /> {isMobile ? "" : "Recursos"}
                 </span>
               }
               key="6"
             >
-              <RecursosView
-                tareas={tareasFiltradas}
-                usuarios={participantesProyecto}
-              />
+              <div style={{ overflowX: 'auto' }}>
+                <RecursosView
+                  tareas={tareasFiltradas}
+                  usuarios={participantesProyecto}
+                />
+              </div>
             </Tabs.TabPane>
             <Tabs.TabPane
               tab={
                 <span>
-                  <DollarOutlined /> Financiero
+                  <DollarOutlined /> {isMobile ? "" : "Financiero"}
                 </span>
               }
               key="7"
             >
-              <FinancieroView
-                tareas={tareasFiltradas}
-                usuarios={participantesProyecto}
-                roles={roles}
-              />
+              <div style={{ overflowX: 'auto' }}>
+                <FinancieroView
+                  tareas={tareasFiltradas}
+                  usuarios={participantesProyecto}
+                  roles={roles}
+                />
+              </div>
             </Tabs.TabPane>
           </>
         )}
       </Tabs>
+      {renderMobileCreateForm()}
+      {renderMobileFilters()}
 
+      {/* Modal de edición responsive */}
       <Modal
         title="Editar Tarea"
         open={editModalVisible}
         onCancel={() => setEditModalVisible(false)}
+        width={isMobile ? '95%' : 600} 
+        style={isMobile ? {
+          top: 10,
+          maxHeight: '95vh',
+          margin: '0 auto'
+        } : undefined}
+        bodyStyle={{
+          maxHeight: isMobile ? '70vh' : '60vh',
+          overflowY: 'auto',
+          padding: isMobile ? '12px' : '24px'
+        }}
         onOk={async () => {
           try {
             const vals = await editForm.validateFields();
@@ -1088,50 +1411,120 @@ export default function ProyectoDetalle() {
               antecesora: vals.antecesora || null,
             });
             setEditModalVisible(false);
-          } catch {}
+          } catch { }
         }}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="Titulo" label="Título" rules={[{ required: true }]}>
+        <Form
+          form={editForm}
+          layout="vertical"
+          size={isMobile ? "small" : "default"}
+        >
+          <Form.Item
+            name="Titulo"
+            label="Título"
+            rules={[{ required: true }]}
+            style={{ marginBottom: isMobile ? 12 : 16 }}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="Estado" label="Estado" rules={[{ required: true }]}>
-            <Select>
-              {ordenEstados.map((e) => (
-                <Option key={e} value={e}>
-                  {estadosMeta[e].label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="PorcentajeAvance" label="Avance (%)">
-            <Input type="number" min={0} max={100} />
-          </Form.Item>
-          <Form.Item name="prioridad" label="Prioridad">
-            <Select>
-              {Object.keys(prioridadMeta).map((p) => (
-                <Option key={p} value={p}>
-                  {p}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+
+          <Row gutter={isMobile ? 8 : 16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="Estado"
+                label="Estado"
+                rules={[{ required: true }]}
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <Select>
+                  {ordenEstados.map((e) => (
+                    <Option key={e} value={e}>
+                      {estadosMeta[e].label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="PorcentajeAvance"
+                label="Avance (%)"
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <Input type="number" min={0} max={100} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={isMobile ? 8 : 16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="prioridad"
+                label="Prioridad"
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <Select>
+                  {Object.keys(prioridadMeta).map((p) => (
+                    <Option key={p} value={p}>
+                      {p}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="antecesora"
+                label="Antecesora"
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <Select allowClear placeholder="Seleccione antecesora">
+                  <Option value={null}>Sin antecesora</Option>
+                  {tareas
+                    .filter((t) => t.TareaID !== editingTask?.TareaID)
+                    .map((t) => (
+                      <Option key={t.TareaID} value={t.TareaID}>
+                        {t.Titulo}
+                      </Option>
+                    ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={isMobile ? 8 : 16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="FechaInicio"
+                label="Inicio"
+                rules={[{ required: true }]}
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="FechaLimite"
+                label="Límite"
+                rules={[{ required: true }]}
+                style={{ marginBottom: isMobile ? 12 : 16 }}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
           <Form.Item
-            name="FechaInicio"
-            label="Fecha Inicio"
-            rules={[{ required: true }]}
+            name="usuario_asignados"
+            label="Responsables"
+            style={{ marginBottom: isMobile ? 8 : 16 }}
           >
-            <DatePicker />
-          </Form.Item>
-          <Form.Item
-            name="FechaLimite"
-            label="Fecha Límite"
-            rules={[{ required: true }]}
-          >
-            <DatePicker />
-          </Form.Item>
-          <Form.Item name="usuario_asignados" label="Responsables">
-            <Select mode="multiple">
+            <Select
+              mode="multiple"
+              maxTagCount={isMobile ? 2 : 3}
+              maxTagPlaceholder={(omittedValues) => `+${omittedValues.length} más`}
+            >
               {usuarios.map((u) => (
                 <Option key={u.UsuarioID} value={u.UsuarioID}>
                   {u.NombreCompleto}
@@ -1139,31 +1532,23 @@ export default function ProyectoDetalle() {
               ))}
             </Select>
           </Form.Item>
-
-          <Form.Item name="antecesora" label="Antecesora">
-            <Select allowClear placeholder="Seleccione antecesora">
-              <Option value={null}>Sin antecesora</Option>
-              {tareas
-                .filter((t) => t.TareaID !== editingTask?.TareaID)
-                .map((t) => (
-                  <Option key={t.TareaID} value={t.TareaID}>
-                    {t.Titulo}
-                  </Option>
-                ))}
-            </Select>
-          </Form.Item>
         </Form>
       </Modal>
+
+
+
+      {/* Modal de recordatorio */}
       <Modal
         title="Enviar recordatorio"
         open={modalRecordatorioVisible}
         onCancel={() => setModalRecordatorioVisible(false)}
+        width={isMobile ? '95%' : undefined}
+        style={isMobile ? { top: 20 } : undefined}
         onOk={async () => {
           if (!mensajeRecordatorio.trim()) {
             return message.warning("Escribe un mensaje para el recordatorio");
           }
 
-          // Recolectar IDs numéricos y correos escritos manualmente
           const usuarios = destinatariosSeleccionados
             .filter((v) => !v.includes("@"))
             .map((v) => parseInt(v));
@@ -1215,15 +1600,16 @@ export default function ProyectoDetalle() {
         />
       </Modal>
 
+      {/* Modal de comentarios responsive */}
       <Modal
         title={`Comentarios - ${comentarioTareaSeleccionada?.Titulo}`}
         open={modalComentariosVisible}
-        width={700}
-        style={{ height: "60vh" }} // altura general menor
+        width={isMobile ? '95%' : 700}
+        style={isMobile ? { top: 20, height: "80vh" } : { height: "60vh" }}
         bodyStyle={{
           display: "flex",
           flexDirection: "column",
-          height: "50vh",
+          height: isMobile ? "60vh" : "50vh",
           paddingBottom: 0,
         }}
         onCancel={() => setModalComentariosVisible(false)}
@@ -1283,13 +1669,26 @@ export default function ProyectoDetalle() {
                   background: "#f5f5f5",
                 }}
               >
-                <Text strong>{c.nombre}</Text>
-                <Text type="secondary" style={{ float: "right" }}>
+                <Text strong style={{ fontSize: isMobile ? '12px' : '14px' }}>
+                  {c.nombre}
+                </Text>
+                <Text
+                  type="secondary"
+                  style={{
+                    float: "right",
+                    fontSize: isMobile ? '10px' : '12px'
+                  }}
+                >
                   {dayjs(c.fecha).format("YYYY-MM-DD HH:mm")}
                 </Text>
                 <div
                   dangerouslySetInnerHTML={{ __html: c.texto }}
-                  style={{ overflowX: "auto", maxWidth: "100%" }}
+                  style={{
+                    overflowX: "auto",
+                    maxWidth: "100%",
+                    fontSize: isMobile ? '12px' : '14px',
+                    marginTop: 4
+                  }}
                 />
               </div>
             )
@@ -1298,7 +1697,7 @@ export default function ProyectoDetalle() {
 
         {/* Input para nuevo comentario */}
         <Input.TextArea
-          rows={2}
+          rows={isMobile ? 3 : 2}
           placeholder="Escribe un nuevo comentario..."
           value={nuevoComentario}
           onChange={(e) => setNuevoComentario(e.target.value)}

@@ -19,6 +19,7 @@ def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto):
         msg['Subject'] = asunto
         msg['From'] = SMTP_USER
         msg['To'] = destinatario
+        
 
         msg_alternative = MIMEMultipart('alternative')
         msg.attach(msg_alternative)
